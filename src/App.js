@@ -357,9 +357,9 @@ function AppWithRouter() {
           >
             <span className="grana-navbar-logo-icon">💰</span>
             <span className="grana-navbar-logo-text">
-              <span style={{ color: '#00d26a' }}>Grana</span>
-              <span style={{ color: '#ffd700' }}>Fácil</span>
-            </span>
+  <span style={{ color: '#00d26a' }}>Pele</span>
+  <span style={{ color: '#ffd700' }}>leca</span>
+</span>
           </div>
 
           {/* Enlaces de navegación - Centrados */}
