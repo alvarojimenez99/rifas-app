@@ -42,8 +42,11 @@ import ParticipantDashboard from './components/participant/ParticipantDashboard'
 import AdminReports from './components/admin/AdminReports';
 import AdminSettings from './components/admin/AdminSettings';
 import GerenciarParticipantes from './components/admin/GerenciarParticipantes';
+import HowItWorksSection from './components/landing/HowItWorksSection';
+import AuthModal from './components/AuthModal';
+import { ModalProvider, useModal } from './contexts/ModalContext';
 
-// Componente interno que usa useLocation dentro del Router
+// Componente interno que usa useLocation dentro do Router
 function LogoutRoute() {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -58,6 +61,7 @@ function AppWithRouter() {
   const { t } = useTranslation();
   const { user, isAdmin, loading } = useAuth();
   const { myRifas, rifas: publicRifas, createRifa } = useRifas();
+  const { showLogin, showRegister, showAuthModal, authMode, closeAuthModal } = useModal();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -357,12 +361,12 @@ function AppWithRouter() {
           >
             <span className="grana-navbar-logo-icon">💰</span>
             <span className="grana-navbar-logo-text">
-  <span style={{ color: '#00d26a' }}>Pele</span>
-  <span style={{ color: '#ffd700' }}>leca</span>
-</span>
+              <span style={{ color: '#00d26a' }}>Pele</span>
+              <span style={{ color: '#ffd700' }}>leca</span>
+            </span>
           </div>
 
-          {/* Enlaces de navegación - Centrados */}
+          {/* Enlaces de navegación - Centrados con más opciones */}
           <div className="grana-navbar-links desktop-only">
             {isAdmin ? (
               <>
@@ -375,25 +379,48 @@ function AppWithRouter() {
                 <Link to="/gestionar" className={`grana-nav-link ${location.pathname === '/gestionar' ? 'active' : ''}`}>
                   <span>✨ Criar Rifa</span>
                 </Link>
+                <Link to="/participantes" className={`grana-nav-link ${location.pathname === '/participantes' ? 'active' : ''}`}>
+                  <span>👥 Participantes</span>
+                </Link>
+                <Link to="/admin/reportes" className={`grana-nav-link ${location.pathname === '/admin/reportes' ? 'active' : ''}`}>
+                  <span>📊 Relatórios</span>
+                </Link>
+                <Link to="/admin/configuracoes" className={`grana-nav-link ${location.pathname === '/admin/configuracoes' ? 'active' : ''}`}>
+                  <span>⚙️ Configurações</span>
+                </Link>
               </>
             ) : user ? (
-              <Link to="/dashboard-participante" className={`grana-nav-link ${location.pathname === '/dashboard-participante' ? 'active' : ''}`}>
-                <span>📊 Meu Painel</span>
-              </Link>
+              <>
+                <Link to="/dashboard-participante" className={`grana-nav-link ${location.pathname === '/dashboard-participante' ? 'active' : ''}`}>
+                  <span>📊 Meu Painel</span>
+                </Link>
+                <Link to="/portal" className={`grana-nav-link ${location.pathname === '/portal' ? 'active' : ''}`}>
+                  <span>🎟️ Ver Rifas</span>
+                </Link>
+                <Link to="/consulta-ganadores" className={`grana-nav-link ${location.pathname === '/consulta-ganadores' ? 'active' : ''}`}>
+                  <span>🏆 Ganhadores</span>
+                </Link>
+                <Link to="/como-funciona" className={`grana-nav-link ${location.pathname === '/como-funciona' ? 'active' : ''}`}>
+                  <span>❓ Como Funciona</span>
+                </Link>
+              </>
             ) : (
-              <Link to="/portal" className={`grana-nav-link ${location.pathname === '/portal' ? 'active' : ''}`}>
-                <span>🎟️ Ver Rifas</span>
-              </Link>
+              <>
+                <Link to="/portal" className={`grana-nav-link ${location.pathname === '/portal' ? 'active' : ''}`}>
+                  <span>🎟️ Ver Rifas</span>
+                </Link>
+                <Link to="/como-funciona" className={`grana-nav-link ${location.pathname === '/como-funciona' ? 'active' : ''}`}>
+                  <span>❓ Como Funciona</span>
+                </Link>
+                <Link to="/consulta-ganadores" className={`grana-nav-link ${location.pathname === '/consulta-ganadores' ? 'active' : ''}`}>
+                  <span>🏆 Ganhadores</span>
+                </Link>
+              </>
             )}
           </div>
 
-          {/* Sección derecha: Idioma + Autenticación */}
+          {/* Sección derecha: Autenticación + Idioma */}
           <div className="grana-navbar-right">
-            {/* Idioma - Siempre visible */}
-            <div className="grana-nav-language">
-              <LanguageSwitcher />
-            </div>
-
             {/* Autenticación */}
             {user ? (
               <>
@@ -437,18 +464,23 @@ function AppWithRouter() {
               <div className="grana-auth-buttons">
                 <button 
                   className="grana-btn-login"
-                  onClick={() => window.dispatchEvent(new CustomEvent('showLoginModal'))}
+                  onClick={showLogin}
                 >
                   🔑 Entrar
                 </button>
                 <button 
                   className="grana-btn-register"
-                  onClick={() => window.dispatchEvent(new CustomEvent('showRegisterModal'))}
+                  onClick={showRegister}
                 >
                   📝 Criar conta
                 </button>
               </div>
             )}
+
+            {/* Idioma - Siempre al final a la derecha */}
+            <div className="grana-nav-language">
+              <LanguageSwitcher />
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -479,6 +511,12 @@ function AppWithRouter() {
                     <Link to="/gestionar" className="grana-mobile-link" onClick={closeMenus}>
                       <span>✨</span> Criar Rifa
                     </Link>
+                    <Link to="/participantes" className="grana-mobile-link" onClick={closeMenus}>
+                      <span>👥</span> Participantes
+                    </Link>
+                    <Link to="/admin/reportes" className="grana-mobile-link" onClick={closeMenus}>
+                      <span>📊</span> Relatórios
+                    </Link>
                   </>
                 ) : user ? (
                   <>
@@ -488,11 +526,22 @@ function AppWithRouter() {
                     <Link to="/portal" className="grana-mobile-link" onClick={closeMenus}>
                       <span>🎟️</span> Ver Rifas
                     </Link>
+                    <Link to="/consulta-ganadores" className="grana-mobile-link" onClick={closeMenus}>
+                      <span>🏆</span> Ganhadores
+                    </Link>
                   </>
                 ) : (
-                  <Link to="/portal" className="grana-mobile-link" onClick={closeMenus}>
-                    <span>🎟️</span> Ver Rifas
-                  </Link>
+                  <>
+                    <Link to="/portal" className="grana-mobile-link" onClick={closeMenus}>
+                      <span>🎟️</span> Ver Rifas
+                    </Link>
+                    <Link to="/como-funciona" className="grana-mobile-link" onClick={closeMenus}>
+                      <span>❓</span> Como Funciona
+                    </Link>
+                    <Link to="/consulta-ganadores" className="grana-mobile-link" onClick={closeMenus}>
+                      <span>🏆</span> Ganhadores
+                    </Link>
+                  </>
                 )}
                 {user && (
                   <>
@@ -501,15 +550,6 @@ function AppWithRouter() {
                       <span className="grana-mobile-user-name">{user.nombre}</span>
                       <span className="grana-mobile-user-role">{user.rol === 'admin' ? 'Admin' : 'Participante'}</span>
                     </div>
-                    {user.rol !== 'admin' && (
-                      <Link 
-                        to="/dashboard-participante" 
-                        className="grana-mobile-menu-item"
-                        onClick={closeMenus}
-                      >
-                        <span>📊</span> Meu Painel
-                      </Link>
-                    )}
                     <Link to="/salir" className="grana-mobile-logout" onClick={closeMenus}>
                       <span>🚪</span> Sair
                     </Link>
@@ -535,8 +575,9 @@ function AppWithRouter() {
         <Route path="/negocio/:id" element={<BusinessProfile />} />
         <Route path="/verify/:token" element={<VerifyEmail />} />
         <Route path="/admin/reportes" element={<AdminReports />} />
-         <Route path="/admin/configuracoes" element={<AdminSettings />} />
-         <Route path="/participantes" element={<GerenciarParticipantes />} />
+        <Route path="/admin/configuracoes" element={<AdminSettings />} />
+        <Route path="/participantes" element={<GerenciarParticipantes />} />
+        <Route path="/como-funciona" element={<HowItWorksSection />} />
         
         <Route path="/" element={
           <main className="App-main">
@@ -555,7 +596,7 @@ function AppWithRouter() {
         
         <Route path="/landing" element={
           <main className="App-main">
-            <LandingPage />
+            <LandingPage onShowRegister={showRegister} onShowLogin={showLogin} />
             <Footer />
           </main>
         } />
@@ -631,14 +672,21 @@ function AppWithRouter() {
         } />
         
         <Route path="/cupones" element={<AllCuponesPage />} />
-        <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
-        <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
+        <Route path="/termos-condicoes" element={<TerminosCondiciones />} />
+        <Route path="/politica-privacidade" element={<PoliticaPrivacidad />} />
         <Route path="/politica-cookies" element={<PoliticaCookies />} />
         <Route path="/aviso-legal" element={<AvisoLegal />} />
         <Route path="/preview/:id" element={<RifaPreview />} />
         <Route path="/participar/:id" element={<ParticipateRaffle rifas={publicRifas} setRifas={() => {}} />} />
         <Route path="/participante/:rifaId/:participanteId" element={<ParticipanteView />} />
       </Routes>
+
+      {/* Modal de autenticación */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={closeAuthModal}
+        initialMode={authMode}
+      />
     </div>
   );
 }
@@ -649,12 +697,14 @@ function App() {
       <AuthProvider>
         <RifasProvider>
           <NotificationsProvider>
-            <Router>
-              <AppWithRouter />
-            </Router>
-            <NotificationToast />
-            <ConfirmDialog />
-            <CookieBanner />
+            <ModalProvider>
+              <Router>
+                <AppWithRouter />
+              </Router>
+              <NotificationToast />
+              <ConfirmDialog />
+              <CookieBanner />
+            </ModalProvider>
           </NotificationsProvider>
         </RifasProvider>
       </AuthProvider>
