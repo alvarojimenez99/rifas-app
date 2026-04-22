@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const bcrypt = require('bcrypt');
+const bcrypt =  require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const { testConnection, query } = require('./config/database');
@@ -198,40 +198,8 @@ const authenticateToken = (req, res, next) => {
 // =====================================================
 // RUTAS DE RIFAS
 // =====================================================
-const routerRifas = express.Router();
-
-routerRifas.get('/', async (req, res) => {
-  try {
-    const result = await query('SELECT * FROM rifas WHERE deleted_at IS NULL ORDER BY fecha_creacion DESC LIMIT 20');
-    res.json({ rifas: result.rows, total: result.rows.length });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener rifas' });
-  }
-});
-
-routerRifas.get('/my', authenticateToken, async (req, res) => {
-  try {
-    const result = await query(
-      'SELECT * FROM rifas WHERE usuario_id = $1 AND deleted_at IS NULL ORDER BY fecha_creacion DESC',
-      [req.user.userId]
-    );
-    res.json({ rifas: result.rows, total: result.rows.length });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener rifas' });
-  }
-});
-
-routerRifas.get('/:id', async (req, res) => {
-  try {
-    const result = await query('SELECT * FROM rifas WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Rifa no encontrada' });
-    res.json({ rifa: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener rifa' });
-  }
-});
-
-app.use('/api/rifas', routerRifas);
+const rifasRoutes = require('./routes/rifas');
+app.use('/api/rifas', rifasRoutes);
 
 // =====================================================
 // RUTAS DE PARTICIPANTES
