@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { validateEmail, validatePassword } from '../../utils/validation';
 
-const LoginModal = ({ isOpen, onClose }) => {
+const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
   const { login, loading, error } = useAuth();
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -12,7 +12,6 @@ const LoginModal = ({ isOpen, onClose }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     
-    // Validar campos
     const emailValidation = validateEmail(loginData.email);
     const passwordValidation = validatePassword(loginData.password, 6);
     
@@ -30,11 +29,10 @@ const LoginModal = ({ isOpen, onClose }) => {
       onClose();
       setLoginData({ email: '', password: '' });
       setLoginErrors({ email: '', password: '' });
-      // Redirigir según el rol
       if (result.user?.rol === 'admin') {
         navigate('/', { replace: true });
       } else {
-        navigate('/portal', { replace: true });
+        navigate('/dashboard-participante', { replace: true });
       }
     }
   };
@@ -45,17 +43,12 @@ const LoginModal = ({ isOpen, onClose }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Iniciar Sesión</h3>
-          <button 
-            className="modal-close"
-            onClick={onClose}
-          >
-            ×
-          </button>
+          <h3>Entrar</h3>
+          <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <form onSubmit={handleLogin} className="modal-form">
           {error && (
-            <div style={{ color: '#ef4444', marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px' }}>
+            <div className="error-message-box">
               {error}
             </div>
           )}
@@ -63,6 +56,7 @@ const LoginModal = ({ isOpen, onClose }) => {
             <label>Email</label>
             <input
               type="email"
+              placeholder="seu@email.com"
               value={loginData.email}
               onChange={(e) => {
                 const value = e.target.value;
@@ -85,9 +79,10 @@ const LoginModal = ({ isOpen, onClose }) => {
             {loginErrors.email && <span className="error-message">{loginErrors.email}</span>}
           </div>
           <div className="form-group">
-            <label>Contraseña</label>
+            <label>Senha</label>
             <input
               type="password"
+              placeholder="••••••"
               value={loginData.password}
               onChange={(e) => {
                 const value = e.target.value;
@@ -111,20 +106,19 @@ const LoginModal = ({ isOpen, onClose }) => {
           </div>
           <button type="submit" className="btn-primary" disabled={loading}>
             <span className="btn-icon">🔑</span>
-            <span>{loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}</span>
+            <span>{loading ? 'Entrando...' : 'Entrar'}</span>
           </button>
         </form>
         <p className="modal-footer">
-          ¿No tienes cuenta? 
+        
           <button 
             className="link-button"
             onClick={() => {
               onClose();
-              // Disparar evento para que el padre muestre el modal de registro
-              window.dispatchEvent(new CustomEvent('showRegisterModal'));
+              if (onSwitchToRegister) onSwitchToRegister();
             }}
           >
-            Regístrate aquí
+            Esqueci minha senha? 
           </button>
         </p>
       </div>
@@ -133,4 +127,3 @@ const LoginModal = ({ isOpen, onClose }) => {
 };
 
 export default LoginModal;
-

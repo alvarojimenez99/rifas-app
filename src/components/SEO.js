@@ -3,11 +3,11 @@ import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 
 const SEO = ({ 
-  title = 'SorteoHub - Plataforma Profesional de Rifas',
-  description = 'Organiza rifas de manera segura, transparente y profesional. Gestiona participantes, sorteos en vivo y pagos de forma fácil y confiable.',
-  image = '/icons/AureLA.png',
+  title = 'GranaFácil - Sua chance de ganhar prêmios incríveis',
+  description = 'Participe de rifas online seguras e concorra a prêmios que mudam vidas. Escolha seus números, pague com PIX e acompanhe os sorteios ao vivo.',
+  image = '/icons/grana-facil-logo.png',
   type = 'website',
-  keywords = 'rifas, sorteos, lotería, organizar rifas, plataforma rifas, rifas sin fines de lucro',
+  keywords = 'rifas, sorteios, prêmios, ganhar dinheiro, rifa online, PIX, prêmios incríveis, GranaFácil',
   url = null,
   noindex = false
 }) => {
@@ -22,7 +22,7 @@ const SEO = ({
       <meta name="title" content={title} />
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
-      <meta name="author" content="SorteoHub" />
+      <meta name="author" content="GranaFácil" />
       <link rel="canonical" href={currentUrl} />
       
       {noindex && <meta name="robots" content="noindex, nofollow" />}
@@ -33,7 +33,7 @@ const SEO = ({
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:site_name" content="SorteoHub" />
+      <meta property="og:site_name" content="GranaFácil" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -44,13 +44,12 @@ const SEO = ({
 
       {/* Additional Meta Tags */}
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta name="theme-color" content="#1e22aa" />
+      <meta name="theme-color" content="#00d26a" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      <meta name="apple-mobile-web-app-title" content="SorteoHub" />
+      <meta name="apple-mobile-web-app-title" content="GranaFácil" />
     </Helmet>
   );
 };
 
 export default SEO;
-

@@ -1,29 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import SEO from './SEO';
 import analytics from '../services/analytics';
-import AffiliateLinks from './AffiliateLinks';
-import CreatorPlans from './CreatorPlans';
-import LoginModal from './modals/LoginModal';
-import RegisterModal from './modals/RegisterModal';
-import ParticipantRegisterModal from './modals/ParticipantRegisterModal';
 import HeroSection from './landing/HeroSection';
 import AboutSection from './landing/AboutSection';
 import FeaturesSection from './landing/FeaturesSection';
 import HowItWorksSection from './landing/HowItWorksSection';
 import CTASection from './landing/CTASection';
-import AdvertisersSection from './landing/AdvertisersSection';
+import FeaturedRaffles from './landing/FeaturedRaffles';
 import ScrollToTop from './ScrollToTop';
+import AuthModal from './AuthModal';
 import './LandingPage.css';
 
 const LandingPage = () => {
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
-  const [showParticipantRegister, setShowParticipantRegister] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
 
-  // Manejar eventos de modales desde otros componentes
+  const handleShowRegister = () => {
+    setAuthMode('register');
+    setShowAuthModal(true);
+  };
+
+  const handleShowLogin = () => {
+    setAuthMode('login');
+    setShowAuthModal(true);
+  };
+
+  // Gerenciar eventos de modais de outros componentes
   useEffect(() => {
-    const handleShowRegister = () => setShowRegister(true);
-    const handleShowLogin = () => setShowLogin(true);
+    const handleShowRegister = () => {
+      setAuthMode('register');
+      setShowAuthModal(true);
+    };
+    const handleShowLogin = () => {
+      setAuthMode('login');
+      setShowAuthModal(true);
+    };
     
     window.addEventListener('showRegisterModal', handleShowRegister);
     window.addEventListener('showLoginModal', handleShowLogin);
@@ -34,7 +45,7 @@ const LandingPage = () => {
     };
   }, []);
 
-  // Track page view
+  // Rastrear visualização da página
   useEffect(() => {
     analytics.trackPageView('Landing Page');
   }, []);
@@ -42,15 +53,17 @@ const LandingPage = () => {
   return (
     <div className="landing-page">
       <SEO 
-        title="SorteoHub - Plataforma Profesional de Rifas"
-        description="Organiza rifas de manera segura, transparente y profesional. Gestiona participantes, sorteos en vivo y pagos de forma fácil y confiable."
-        keywords="rifas, sorteos, lotería, organizar rifas, plataforma rifas, rifas sin fines de lucro"
+        title="Peleleca - Sua chance de ganhar prêmios incríveis"
+        description="Participe de rifas online seguras e concorra a prêmios que mudam vidas. Escolha seus números, pague com PIX e acompanhe os sorteios ao vivo."
+        keywords="rifas, sorteios, prêmios, ganhar dinheiro, rifa online, PIX, prêmios incríveis"
       />
       
       <HeroSection 
-        onShowRegister={() => setShowRegister(true)}
-        onShowLogin={() => setShowLogin(true)}
+        onShowRegister={handleShowRegister}
+        onShowLogin={handleShowLogin}
       />
+      
+      <FeaturedRaffles />
       
       <AboutSection />
       
@@ -58,39 +71,16 @@ const LandingPage = () => {
       
       <HowItWorksSection />
       
-      <CTASection onShowRegister={() => setShowRegister(true)} />
-      
-      {/* Sección de Planes para Creadores */}
-      <section className="creator-plans-section">
-        <div className="container">
-          <CreatorPlans />
-        </div>
-      </section> 
+      <CTASection onShowRegister={handleShowRegister} />
 
-      {/* Affiliate Links Section */}
-      <section className="affiliate-section">
-        <div className="container">
-          <AffiliateLinks category="general" limit={3} />
-        </div>
-      </section>
-
-      <AdvertisersSection />
-
-      {/* Botón Scroll to Top */}
+      {/* Botão Scroll to Top */}
       <ScrollToTop />
 
-      {/* Modales */}
-      <LoginModal 
-        isOpen={showLogin} 
-        onClose={() => setShowLogin(false)} 
-      />
-      <RegisterModal 
-        isOpen={showRegister} 
-        onClose={() => setShowRegister(false)} 
-      />
-      <ParticipantRegisterModal 
-        isOpen={showParticipantRegister} 
-        onClose={() => setShowParticipantRegister(false)} 
+      {/* Modal de autenticação */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authMode}
       />
     </div>
   );

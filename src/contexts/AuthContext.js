@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/api';
+import { API_BASE, SOCKET_URL } from '../config/api';
 
 const AuthContext = createContext();
 
@@ -13,6 +14,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -27,11 +29,15 @@ export const AuthProvider = ({ children }) => {
       setError(null);
 
       // Verificar si hay token
-      if (!authService.isAuthenticated()) {
+      const storedToken = authService.getToken();
+      if (!storedToken) {
         setUser(null);
+        setToken(null);
         setLoading(false);
         return;
       }
+
+      setToken(storedToken);
 
       // Obtener información del usuario desde la API
       const response = await authService.getCurrentUser();
@@ -41,6 +47,7 @@ export const AuthProvider = ({ children }) => {
       // Si hay error, limpiar autenticación
       authService.logout();
       setUser(null);
+      setToken(null);
       setError('Sesión expirada. Por favor, inicia sesión nuevamente.');
     } finally {
       setLoading(false);
@@ -56,6 +63,7 @@ export const AuthProvider = ({ children }) => {
       
       // Guardar token y usuario
       authService.saveAuth(response.token, response.user);
+      setToken(response.token);
       setUser(response.user);
 
       return { success: true, user: response.user };
@@ -75,11 +83,20 @@ export const AuthProvider = ({ children }) => {
 
       const response = await authService.register(userData);
       
-      // Guardar token y usuario
-      authService.saveAuth(response.token, response.user);
-      setUser(response.user);
-
-      return { success: true, user: response.user };
+      // Guardar token y usuario (si el registro devuelve token)
+      if (response.token) {
+        authService.saveAuth(response.token, response.user);
+        setToken(response.token);
+        setUser(response.user);
+      }
+      
+      // Devolver información de verificación si existe
+      return { 
+        success: true, 
+        user: response.user,
+        needsVerification: response.needsVerification || false,
+        verificationToken: response.verificationToken
+      };
     } catch (error) {
       const errorMessage = error.message || 'Error al registrar usuario';
       setError(errorMessage);
@@ -89,10 +106,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyEmail = async (token) => {
+    try {
+      setLoading(true);
+      const response = await authService.verifyEmail(token);
+      return { success: true, message: response.message };
+    } catch (error) {
+      return { success: false, error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const logout = () => {
     authService.logout();
     setUser(null);
+    setToken(null);
     setError(null);
   };
 
@@ -102,14 +131,17 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    token,
     loading,
     error,
     login,
     register,
+    verifyEmail,
     logout,
     clearError,
     isAuthenticated: !!user,
     isAdmin: user?.rol === 'admin',
+    isEmailVerified: user?.email_verificado || false
   };
 
   return (

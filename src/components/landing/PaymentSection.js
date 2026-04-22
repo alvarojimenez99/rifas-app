@@ -2,64 +2,56 @@ import React from 'react';
 
 const PaymentSection = () => {
   return (
-    <section className="payment-section">
-      <div className="container">
-        <div className="payment-content">
-          <div className="payment-header">
-            <div className="payment-icon">🔒</div>
-            <h2 className="section-title">
-              <span className="section-icon">💳</span>
-              Pagos Seguros con Stripe
-            </h2>
-            <p className="payment-subtitle">
-              Integración completa con Stripe para procesar pagos de forma segura y automática
-            </p>
+    <section className="grana-payment-section">
+      <div className="grana-payment-container">
+        <div className="grana-payment-header">
+          <span className="grana-payment-badge">💳 Pagamentos</span>
+          <h2 className="grana-payment-title">
+            Pagamento <span>100% seguro</span>
+          </h2>
+          <p className="grana-payment-subtitle">
+            Escolha a forma de pagamento mais conveniente e concorra com tranquilidade.
+          </p>
+        </div>
+
+        <div className="grana-payment-grid">
+          <div className="grana-payment-card">
+            <div className="grana-payment-icon">⚡</div>
+            <h3>PIX</h3>
+            <p>Pagamento instantâneo e sem taxas. O QR Code é gerado automaticamente para você.</p>
           </div>
 
-          <div className="payment-features-grid">
-            <div className="payment-feature-card">
-              <div className="payment-feature-icon">✅</div>
-              <h3>Pago con Tarjeta</h3>
-              <p>Los participantes pueden pagar directamente con tarjeta de crédito o débito. Proceso instantáneo y seguro.</p>
-            </div>
-
-            <div className="payment-feature-card">
-              <div className="payment-feature-icon">🏦</div>
-              <h3>Transferencia Automática</h3>
-              <p>El dinero se transfiere automáticamente a la cuenta bancaria que registres al crear tu rifa. SorteoHub retiene solo la comisión de tu plan.</p>
-            </div>
-
-            <div className="payment-feature-card">
-              <div className="payment-feature-icon">🛡️</div>
-              <h3>Seguridad Garantizada</h3>
-              <p>Procesado por Stripe, líder mundial en pagos online. Tus datos y los de tus participantes están completamente protegidos.</p>
-            </div>
-
-            <div className="payment-feature-card">
-              <div className="payment-feature-icon">⚡</div>
-              <h3>Proceso Automático</h3>
-              <p>Sin intervención manual. Los pagos se procesan automáticamente y las participaciones se registran al instante.</p>
-            </div>
+          <div className="grana-payment-card">
+            <div className="grana-payment-icon">💳</div>
+            <h3>Cartão de Crédito</h3>
+            <p>Aceitamos Visa, Mastercard, Elo e American Express. Parcelamento disponível.</p>
           </div>
 
-          <div className="payment-info-box">
-            <div className="info-box-icon">ℹ️</div>
-            <div className="info-box-content">
-              <h4>¿Cómo funciona el pago?</h4>
-              <ol>
-                <li>Al crear tu rifa, registras los datos de tu cuenta bancaria (CLABE, banco, titular)</li>
-                <li>Los participantes seleccionan números y pagan con tarjeta a través de Stripe</li>
-                <li>SorteoHub procesa el pago y retiene la comisión de tu plan</li>
-                <li>El dinero restante se transfiere automáticamente a tu cuenta bancaria</li>
-              </ol>
-            </div>
+          <div className="grana-payment-card">
+            <div className="grana-payment-icon">🏦</div>
+            <h3>Transferência Bancária</h3>
+            <p>Pagamento via TED ou DOC para a conta do organizador da rifa.</p>
           </div>
 
-          <div className="stripe-badge">
-            <p>Pagos procesados de forma segura por</p>
-            <div className="stripe-logo">
-              <strong>Stripe</strong>
-            </div>
+          <div className="grana-payment-card">
+            <div className="grana-payment-icon">🔒</div>
+            <h3>Ambiente Seguro</h3>
+            <p>Todos os pagamentos são processados com criptografia de ponta a ponta.</p>
+          </div>
+        </div>
+
+        <div className="grana-payment-trust">
+          <div className="grana-trust-badge">
+            <span>🔒</span>
+            <span>SSL Security</span>
+          </div>
+          <div className="grana-trust-badge">
+            <span>⚡</span>
+            <span>PIX Instantâneo</span>
+          </div>
+          <div className="grana-trust-badge">
+            <span>💳</span>
+            <span>Pagamento Seguro</span>
           </div>
         </div>
       </div>
@@ -68,4 +60,3 @@ const PaymentSection = () => {
 };
 
 export default PaymentSection;
-

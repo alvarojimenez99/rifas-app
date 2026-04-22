@@ -13,30 +13,25 @@ router.get('/', optionalAuth, async (req, res) => {
     let queryParams = [];
     let paramCount = 0;
 
-    // Si se busca por resultado_publicado, incluir rifas finalizadas
     if (resultado_publicado === 'true') {
       whereConditions.push('r.resultado_publicado = true');
     } else {
-      // Por defecto, solo rifas activas
       whereConditions.push('r.activa = true');
       whereConditions.push('r.fecha_fin > CURRENT_TIMESTAMP');
     }
 
-    // Filtro por tipo
     if (tipo) {
       paramCount++;
       whereConditions.push(`r.tipo = $${paramCount}`);
       queryParams.push(tipo);
     }
 
-    // Filtro por categoría
     if (categoria && categoria !== 'all' && categoria !== 'todas') {
       paramCount++;
       whereConditions.push(`r.categoria = $${paramCount}`);
       queryParams.push(categoria);
     }
 
-    // Filtro por rango de precio
     if (precio_min) {
       paramCount++;
       whereConditions.push(`r.precio >= $${paramCount}`);
@@ -49,12 +44,10 @@ router.get('/', optionalAuth, async (req, res) => {
       queryParams.push(parseFloat(precio_max));
     }
 
-    // Filtro por disponibilidad
     if (disponibles === 'true') {
       whereConditions.push('(r.cantidad_elementos - COALESCE(ev.count, 0) - COALESCE(er.count, 0)) > 0');
     }
 
-    // Búsqueda por nombre
     if (search) {
       paramCount++;
       whereConditions.push(`r.nombre ILIKE $${paramCount}`);
@@ -77,21 +70,25 @@ router.get('/', optionalAuth, async (req, res) => {
         COALESCE(ratings_stats.total_calificaciones, 0) as total_calificaciones,
         COALESCE(ratings_stats.promedio_calificacion_rifa, 0) as promedio_calificacion_rifa,
         (SELECT COUNT(*) FROM rifas WHERE usuario_id = u.id AND deleted_at IS NULL) as total_rifas_creador,
-        COALESCE((SELECT json_agg(
-          json_build_object(
-            'id', f.id, 
-            'url', f.url_foto, 
-            'url_foto', f.url_foto, 
-            'descripcion', f.descripcion, 
-            'orden', f.orden, 
-            'premio_id', f.premio_id, 
-            'premio_nombre', p.nombre, 
-            'premio_posicion', p.posicion
-          ) ORDER BY COALESCE(p.posicion, 999), f.orden
-        )
-         FROM fotos_premios f 
-         LEFT JOIN premios p ON f.premio_id = p.id 
-         WHERE f.rifa_id = r.id), '[]'::json) as fotos_premios
+        COALESCE((
+          SELECT json_agg(foto_data)
+          FROM (
+            SELECT json_build_object(
+              'id', f.id, 
+              'url', f.url_foto, 
+              'url_foto', f.url_foto, 
+              'descripcion', f.descripcion, 
+              'orden', f.orden, 
+              'premio_id', f.premio_id, 
+              'premio_nombre', p.nombre, 
+              'premio_posicion', p.posicion
+            ) as foto_data
+            FROM fotos_premios f 
+            LEFT JOIN premios p ON f.premio_id = p.id 
+            WHERE f.rifa_id = r.id
+            ORDER BY COALESCE(p.posicion, 999), f.orden
+          ) fotos_subquery
+        ), '[]'::json) as fotos_premios
       FROM rifas r
       JOIN usuarios u ON r.usuario_id = u.id
       LEFT JOIN (
@@ -120,7 +117,6 @@ router.get('/', optionalAuth, async (req, res) => {
       WHERE ${whereClause} AND r.deleted_at IS NULL
       ORDER BY r.fecha_creacion DESC
     `, queryParams).catch(err => {
-      // Si las vistas no existen, continuar sin estadísticas de calificaciones
       if (err.message.includes('does not exist')) {
         console.warn('⚠️ Vistas de calificaciones no encontradas, continuando sin ellas...');
         return query(`
@@ -137,8 +133,21 @@ router.get('/', optionalAuth, async (req, res) => {
             0 as total_calificaciones,
             0 as promedio_calificacion_rifa,
             (SELECT COUNT(*) FROM rifas WHERE usuario_id = u.id AND deleted_at IS NULL) as total_rifas_creador,
-            (SELECT json_agg(json_build_object('id', f.id, 'url', f.url_foto, 'url_foto', f.url_foto, 'descripcion', f.descripcion, 'orden', f.orden))
-             FROM fotos_premios f WHERE f.rifa_id = r.id ORDER BY f.orden) as fotos_premios
+            COALESCE((
+              SELECT json_agg(foto_data)
+              FROM (
+                SELECT json_build_object(
+                  'id', f.id, 
+                  'url', f.url_foto, 
+                  'url_foto', f.url_foto, 
+                  'descripcion', f.descripcion, 
+                  'orden', f.orden
+                ) as foto_data
+                FROM fotos_premios f 
+                WHERE f.rifa_id = r.id
+                ORDER BY f.orden
+              ) fotos_subquery
+            ), '[]'::json) as fotos_premios
           FROM rifas r
           JOIN usuarios u ON r.usuario_id = u.id
           LEFT JOIN (
@@ -170,22 +179,13 @@ router.get('/', optionalAuth, async (req, res) => {
       throw err;
     });
 
-    // Para cada rifa, obtener los números vendidos y reservados
     const rifasConNumeros = await Promise.all(result.rows.map(async (rifa) => {
       const [vendidosResult, reservadosResult] = await Promise.all([
         query('SELECT elemento FROM elementos_vendidos WHERE rifa_id = $1', [rifa.id]),
         query('SELECT elemento FROM elementos_reservados WHERE rifa_id = $1 AND activo = true', [rifa.id])
       ]);
 
-      // Normalizar fotosPremios
       let fotosPremios = rifa.fotos_premios || [];
-      
-      // Debug: Log para ver qué viene del backend
-      if (rifa.id === '1762310069179') {
-        console.log(`🔍 Debug Rifa ${rifa.id}:`);
-        console.log('  - fotos_premios raw:', rifa.fotos_premios);
-        console.log('  - tipo:', typeof rifa.fotos_premios);
-      }
       
       if (typeof fotosPremios === 'string') {
         try {
@@ -196,7 +196,6 @@ router.get('/', optionalAuth, async (req, res) => {
         }
       }
       
-      // Si es null (cuando json_agg no encuentra resultados), convertir a array vacío
       if (fotosPremios === null) {
         fotosPremios = [];
       }
@@ -206,18 +205,11 @@ router.get('/', optionalAuth, async (req, res) => {
         fotosPremios = [];
       }
       
-      // Asegurar que cada foto tenga tanto 'url' como 'url_foto'
       fotosPremios = fotosPremios.map(foto => ({
         ...foto,
         url: foto.url || foto.url_foto || '',
         url_foto: foto.url_foto || foto.url || ''
       }));
-
-      // Debug: Log final
-      if (rifa.id === '1762310069179') {
-        console.log(`  - fotosPremios procesado:`, fotosPremios);
-        console.log(`  - cantidad fotos:`, fotosPremios.length);
-      }
 
       return {
         ...rifa,
@@ -241,7 +233,7 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// GET /api/rifas/my - Obtener rifas del usuario autenticado (solo no eliminadas)
+// GET /api/rifas/my - Obtener rifas del usuario autenticado
 router.get('/my', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const result = await query(`
@@ -264,15 +256,12 @@ router.get('/my', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/rifas/:id/formas-pago - Actualizar formas de pago de una rifa (DEBE IR ANTES DE /:id)
+// PUT /api/rifas/:id/formas-pago
 router.put('/:id/formas-pago', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const formasPago = req.body;
 
-    console.log('📦 Formas de pago recibidas:', JSON.stringify(formasPago, null, 2));
-
-    // Verificar que la rifa existe y pertenece al usuario
     const rifaResult = await query(
       'SELECT usuario_id FROM rifas WHERE id = $1',
       [id]
@@ -292,13 +281,8 @@ router.put('/:id/formas-pago', authenticateToken, requireAdmin, async (req, res)
       });
     }
 
-    // Eliminar formas de pago existentes
-    await query(
-      'DELETE FROM formas_pago WHERE rifa_id = $1',
-      [id]
-    );
+    await query('DELETE FROM formas_pago WHERE rifa_id = $1', [id]);
 
-    // Insertar nueva forma de pago si se proporciona
     if (formasPago && (formasPago.banco || formasPago.clabe || formasPago.numero_cuenta || formasPago.nombre_titular)) {
       const valores = [
         id,
@@ -312,21 +296,14 @@ router.put('/:id/formas-pago', authenticateToken, requireAdmin, async (req, res)
         formasPago.otros_detalles || null
       ];
       
-      console.log('💾 Insertando formas de pago con valores:', valores);
-      
       await query(`
         INSERT INTO formas_pago (
           rifa_id, tipo_pago, banco, clabe, numero_cuenta, nombre_titular, 
           telefono, whatsapp, otros_detalles
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       `, valores);
-      
-      console.log('✅ Formas de pago insertadas correctamente');
-    } else {
-      console.log('⚠️ No se insertaron formas de pago - condición no cumplida');
     }
 
-    // Obtener las formas de pago actualizadas
     const formasPagoResult = await query(
       'SELECT * FROM formas_pago WHERE rifa_id = $1',
       [id]
@@ -351,7 +328,6 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verificar si la rifa existe
     const rifaResult = await query(`
       SELECT 
         r.*, 
@@ -373,7 +349,6 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
 
     const rifa = rifaResult.rows[0];
 
-    // Verificar si la rifa está eliminada (solo el owner puede ver rifas eliminadas)
     if (rifa.deleted_at && (!req.user || req.user.id !== rifa.usuario_id)) {
       return res.status(404).json({
         error: 'Rifa no encontrada',
@@ -381,7 +356,6 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
       });
     }
 
-    // Verificar si es privada y si el usuario tiene acceso
     if (rifa.es_privada && (!req.user || req.user.id !== rifa.usuario_id)) {
       return res.status(403).json({
         error: 'Acceso denegado a rifa privada',
@@ -389,16 +363,13 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
       });
     }
 
-    // Obtener premios
     const premiosResult = await query(
       'SELECT * FROM premios WHERE rifa_id = $1 ORDER BY posicion',
       [id]
     );
 
-    // Obtener fotos de premios (compatible con estructura antigua y nueva)
     let fotosResult;
     try {
-      // Intentar con la nueva estructura (con premio_id)
       fotosResult = await query(
         `SELECT f.*, p.nombre as premio_nombre, p.posicion as premio_posicion 
          FROM fotos_premios f 
@@ -408,7 +379,6 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
         [id]
       );
     } catch (err) {
-      // Si la columna premio_id no existe, usar estructura antigua
       if (err.message.includes('premio_id') || err.message.includes('does not exist')) {
         fotosResult = await query(
           `SELECT f.*, NULL as premio_nombre, NULL as premio_posicion 
@@ -422,26 +392,21 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
       }
     }
 
-    // Obtener formas de pago
     const formasPagoResult = await query(
       'SELECT * FROM formas_pago WHERE rifa_id = $1',
       [id]
     );
 
-    // Obtener números vendidos
     const vendidosResult = await query(
       'SELECT elemento FROM elementos_vendidos WHERE rifa_id = $1',
       [id]
     );
 
-    // Obtener números reservados
     const reservadosResult = await query(
       'SELECT elemento FROM elementos_reservados WHERE rifa_id = $1 AND activo = true',
       [id]
     );
 
-    // Obtener estadísticas básicas
-    // Calcular total_recaudado en subconsulta separada para evitar duplicación por JOINs
     const statsResult = await query(`
       SELECT 
         (SELECT COUNT(DISTINCT elemento) FROM elementos_vendidos WHERE rifa_id = $1) as elementos_vendidos,
@@ -454,7 +419,6 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
         ), 0) as total_recaudado
     `, [id]);
 
-    // Obtener estadísticas de calificaciones
     let ratingsStatsResult;
     try {
       ratingsStatsResult = await query(`
@@ -469,7 +433,6 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
       }
     }
 
-    // Si el usuario es el creador de la rifa, incluir participantes
     let participantes = [];
     if (req.user && req.user.id === rifa.usuario_id) {
       const participantesResult = await query(`
@@ -480,7 +443,6 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
       participantes = participantesResult.rows;
     }
 
-    // Obtener estadísticas de calificaciones del creador
     let creadorStatsResult;
     try {
       creadorStatsResult = await query(`
@@ -516,7 +478,6 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
       calificaciones_1: 0
     };
 
-    // Normalizar fotosPremios para incluir información del premio
     const fotosPremiosNormalizadas = fotosResult.rows.map(foto => ({
       id: foto.id,
       url: foto.url_foto,
@@ -552,76 +513,192 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
   }
 });
 
-// PUT /api/rifas/:id/resultado - Publicar/actualizar número ganador
+// PUT /api/rifas/:id/resultado - Publicar número ganador
+// PUT /api/rifas/:id/resultado - Publicar número ganador
 router.put('/:id/resultado', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { numero_ganador, resultado_publicado } = req.body;
 
-    await query(
-      'UPDATE rifas SET numero_ganador = $1, resultado_publicado = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
-      [numero_ganador || null, resultado_publicado === true, id]
+    // Validar que el número ganador no esté vacío
+    if (resultado_publicado === true && (!numero_ganador || numero_ganador.toString().trim() === '')) {
+      return res.status(400).json({ 
+        error: 'Para publicar o resultado, informe o número ganador',
+        code: 'WINNER_NUMBER_REQUIRED'
+      });
+    }
+
+    // Actualizar la rifa: número ganador, resultado publicado, activa = false, fecha_fin = ahora
+    const updateResult = await query(
+      `UPDATE rifas 
+       SET numero_ganador = $1, 
+           resultado_publicado = $2, 
+           activa = $3,
+           fecha_fin = CASE WHEN $2 = true THEN CURRENT_TIMESTAMP ELSE fecha_fin END,
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $4
+       RETURNING *`,
+      [numero_ganador || null, resultado_publicado === true, resultado_publicado !== true, id]
     );
 
-    const result = await query('SELECT numero_ganador, resultado_publicado FROM rifas WHERE id = $1', [id]);
+    const rifaActualizada = updateResult.rows[0];
+    const result = await query('SELECT numero_ganador, resultado_publicado, activa, fecha_fin FROM rifas WHERE id = $1', [id]);
     
-    // Notificar cuando se selecciona un ganador
     if (numero_ganador && resultado_publicado) {
+      console.log(`🔍 Buscando ganador para rifa ${id} com número ${numero_ganador}`);
+      console.log(`📊 Estado de la rifa: activa=${rifaActualizada.activa}, resultado_publicado=${rifaActualizada.resultado_publicado}`);
+      
+      // Enviar notificación por socket
       try {
         const { notifyWinnerSelected } = require('../services/notifications');
         const io = req.app.get('io');
         await notifyWinnerSelected(id, numero_ganador, io);
       } catch (notifError) {
-        console.error('❌ Error enviando notificación de ganador:', notifError);
-        // No fallar la operación por error de notificación
+        console.error('❌ Error enviando notificação de ganhador:', notifError);
       }
       
-      // Enviar email al ganador
+      // Buscar al ganador
       try {
-        // Buscar el participante que tiene el número ganador
+        // Buscar el ganador en participantes y elementos_vendidos
         const ganadorResult = await query(`
-          SELECT DISTINCT p.id, p.nombre, p.email, p.rifa_id, r.nombre as rifa_nombre
+          SELECT DISTINCT 
+            p.id, 
+            p.nombre, 
+            p.email, 
+            p.telefono,
+            p.numeros_seleccionados,
+            p.rifa_id, 
+            r.nombre as rifa_nombre
           FROM participantes p
-          JOIN elementos_vendidos ev ON p.id = ev.participante_id AND p.rifa_id = ev.rifa_id
           JOIN rifas r ON p.rifa_id = r.id
-          WHERE ev.rifa_id = $1 AND ev.elemento = $2 AND p.estado = 'confirmado'
+          WHERE p.rifa_id = $1 
+            AND p.estado = 'confirmado'
+            AND (
+              -- Buscar en elementos_vendidos
+              EXISTS (
+                SELECT 1 FROM elementos_vendidos ev 
+                WHERE ev.rifa_id = p.rifa_id 
+                  AND ev.participante_id = p.id 
+                  AND ev.elemento = $2
+              )
+              OR
+              -- Buscar en el array JSON numeros_seleccionados
+              (
+                p.numeros_seleccionados IS NOT NULL 
+                AND p.numeros_seleccionados::text LIKE $3
+              )
+            )
           LIMIT 1
-        `, [id, numero_ganador]);
+        `, [id, String(numero_ganador), `%"${numero_ganador}"%`]);
+        
+        console.log('📊 Resultado busca ganhador:', ganadorResult.rows.length > 0 ? ganadorResult.rows[0] : 'Nenhum');
         
         if (ganadorResult.rows.length > 0) {
           const ganador = ganadorResult.rows[0];
-          const rifaInfo = await query('SELECT nombre FROM rifas WHERE id = $1', [id]);
+          console.log(`✅ Ganhador encontrado: ${ganador.nombre} (ID: ${ganador.id}) com número ${numero_ganador}`);
           
-          const emailService = require('../config/email');
-          await emailService.sendWinnerNotification(
-            {
-              nombre: ganador.nombre,
-              email: ganador.email
-            },
-            {
-              id: id,
-              nombre: rifaInfo.rows[0]?.nombre || ganador.rifa_nombre,
-              numero_ganador: numero_ganador
+          // Intentar guardar el ID del ganador en la rifa
+          try {
+            const columnExists = await query(`
+              SELECT column_name 
+              FROM information_schema.columns 
+              WHERE table_name = 'rifas' AND column_name = 'ganador_id'
+            `);
+            
+            if (columnExists.rows.length > 0) {
+              const ganadorId = parseInt(ganador.id, 10);
+              await query(
+                'UPDATE rifas SET ganador_id = $1 WHERE id = $2',
+                [ganadorId, id]
+              );
+              console.log('✅ Ganador ID guardado en la rifa');
             }
-          );
-          console.log('✅ Email al ganador enviado');
+          } catch (updateError) {
+            console.log('⚠️ No se pudo guardar ganador_id, continuando...');
+          }
+          
+          // Enviar email al ganador
+          try {
+            const rifaInfo = await query('SELECT nombre FROM rifas WHERE id = $1', [id]);
+            const emailService = require('../config/email');
+            
+            await emailService.sendWinnerNotification(
+              {
+                nombre: ganador.nombre,
+                email: ganador.email,
+                telefono: ganador.telefono || 'No informado'
+              },
+              {
+                id: id,
+                nombre: rifaInfo.rows[0]?.nombre || ganador.rifa_nombre,
+                numero_ganador: numero_ganador,
+                numeros_comprados: ganador.numeros_seleccionados
+              }
+            );
+            console.log('✅ Email ao ganhador enviado com sucesso');
+          } catch (emailError) {
+            console.error('❌ Error enviando email ao ganhador:', emailError);
+          }
+          
+          // Enviar notificación a todos los participantes por socket
+          try {
+            const io = req.app.get('io');
+            io.to(`rifa_${id}`).emit('raffle_finished', {
+              rifaId: id,
+              numero_ganador: numero_ganador,
+              ganador_nombre: ganador.nombre,
+              mensaje: `🎉 A rifa foi finalizada! Número sorteado: ${numero_ganador} - Ganhador: ${ganador.nombre}`
+            });
+            console.log('✅ Notificação enviada a todos os participantes');
+          } catch (ioError) {
+            console.error('❌ Error enviando notificação por socket:', ioError);
+          }
+          
         } else {
-          console.log('⚠️  No se encontró participante con el número ganador');
+          console.log(`⚠️ Nenhum participante encontrado com o número ${numero_ganador}`);
+          
+          // Debug: Mostrar todos los participantes confirmados
+          const debugResult = await query(`
+            SELECT 
+              p.id, 
+              p.nombre, 
+              p.numeros_seleccionados,
+              p.estado,
+              array_agg(ev.elemento) as elementos_vendidos
+            FROM participantes p
+            LEFT JOIN elementos_vendidos ev ON p.id = ev.participante_id AND p.rifa_id = ev.rifa_id
+            WHERE p.rifa_id = $1 AND p.estado = 'confirmado'
+            GROUP BY p.id, p.nombre, p.numeros_seleccionados, p.estado
+          `, [id]);
+          
+          console.log('📋 Participantes confirmados:', JSON.stringify(debugResult.rows, null, 2));
         }
-      } catch (emailError) {
-        console.error('❌ Error enviando email al ganador:', emailError);
-        // No fallar la operación por error de email
+      } catch (winnerError) {
+        console.error('❌ Error en proceso de ganador:', winnerError);
       }
     }
     
-    res.json({ message: 'Resultado actualizado', resultado: result.rows[0] });
+    res.json({ 
+      message: resultado_publicado === true ? 'Resultado publicado y rifa finalizada' : 'Resultado actualizado',
+      resultado: {
+        numero_ganador: result.rows[0].numero_ganador,
+        resultado_publicado: result.rows[0].resultado_publicado,
+        activa: result.rows[0].activa,
+        fecha_fin: result.rows[0].fecha_fin
+      }
+    });
+    
   } catch (error) {
     console.error('Error actualizando resultado de rifa:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    res.status(500).json({ 
+      error: 'Error interno do servidor',
+      code: 'INTERNAL_ERROR',
+      details: error.message
+    });
   }
 });
 
-// GET /api/rifas/:id/verificar?numero=123 - Verificar si el número es ganador
+// GET /api/rifas/:id/verificar - Verificar número ganador
 router.get('/:id/verificar', async (req, res) => {
   try {
     const { id } = req.params;
@@ -648,11 +725,122 @@ router.get('/:id/verificar', async (req, res) => {
   }
 });
 
+
+// GET /api/rifas/reportes/dados - Obtener datos para reportes
+router.get('/reportes/dados', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { fecha_inicio, fecha_fin, status, categoria, search } = req.query;
+    const usuarioId = req.user.id;
+    
+    let whereConditions = ['r.usuario_id = $1'];
+    let queryParams = [usuarioId];
+    let paramCount = 1;
+
+    if (fecha_inicio) {
+      paramCount++;
+      whereConditions.push(`r.created_at >= $${paramCount}`);
+      queryParams.push(fecha_inicio);
+    }
+
+    if (fecha_fin) {
+      paramCount++;
+      whereConditions.push(`r.created_at <= $${paramCount}`);
+      queryParams.push(fecha_fin);
+    }
+
+    if (status === 'activas') {
+      whereConditions.push(`r.activa = true AND r.resultado_publicado = false`);
+    } else if (status === 'finalizadas') {
+      whereConditions.push(`r.resultado_publicado = true`);
+    } else if (status === 'eliminadas') {
+      whereConditions.push(`r.deleted_at IS NOT NULL`);
+    } else {
+      whereConditions.push(`r.deleted_at IS NULL`);
+    }
+
+    if (categoria && categoria !== 'todos') {
+      paramCount++;
+      whereConditions.push(`r.categoria = $${paramCount}`);
+      queryParams.push(categoria);
+    }
+
+    if (search) {
+      paramCount++;
+      whereConditions.push(`(r.nombre ILIKE $${paramCount} OR r.descripcion ILIKE $${paramCount})`);
+      queryParams.push(`%${search}%`);
+    }
+
+    const whereClause = whereConditions.join(' AND ');
+
+    const result = await query(`
+      SELECT 
+        r.id,
+        r.nombre,
+        r.descripcion,
+        r.precio,
+        r.created_at,
+        r.fecha_fin,
+        r.fecha_sorteo,
+        r.activa,
+        r.resultado_publicado,
+        r.numero_ganador,
+        r.categoria,
+        r.cantidad_elementos,
+        COALESCE((
+          SELECT COUNT(*) FROM participantes 
+          WHERE rifa_id = r.id AND estado = 'confirmado'
+        ), 0) as total_participantes,
+        COALESCE((
+          SELECT COUNT(*) FROM elementos_vendidos 
+          WHERE rifa_id = r.id
+        ), 0) as total_vendidos,
+        COALESCE((
+          SELECT SUM(total_pagado) FROM participantes 
+          WHERE rifa_id = r.id AND estado = 'confirmado'
+        ), 0) as total_recaudado
+      FROM rifas r
+      WHERE ${whereClause}
+      ORDER BY r.created_at DESC
+    `, queryParams);
+
+    // Calcular estadísticas generales
+    const stats = await query(`
+      SELECT 
+        COUNT(*) as total_rifas,
+        SUM(CASE WHEN activa = true AND resultado_publicado = false THEN 1 ELSE 0 END) as rifas_ativas,
+        SUM(CASE WHEN resultado_publicado = true THEN 1 ELSE 0 END) as rifas_finalizadas,
+        COALESCE(SUM(
+          (SELECT COALESCE(SUM(total_pagado), 0) FROM participantes 
+           WHERE rifa_id = r.id AND estado = 'confirmado')
+        ), 0) as total_arrecadado,
+        COALESCE(SUM(
+          (SELECT COUNT(*) FROM elementos_vendidos WHERE rifa_id = r.id)
+        ), 0) as total_numeros_vendidos,
+        COALESCE(SUM(
+          (SELECT COUNT(*) FROM participantes WHERE rifa_id = r.id AND estado = 'confirmado')
+        ), 0) as total_participantes
+      FROM rifas r
+      WHERE r.usuario_id = $1 AND r.deleted_at IS NULL
+    `, [usuarioId]);
+
+    res.json({
+      success: true,
+      rifas: result.rows,
+      estadisticas: stats.rows[0],
+      total: result.rows.length
+    });
+
+  } catch (error) {
+    console.error('Error generando reporte:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 // POST /api/rifas - Crear nueva rifa
+// POST /api/rifas - Crear nueva rifa (con manejo correcto de imágenes)
 router.post('/', authenticateToken, requireAdmin, sanitizeInput, validateRifa, async (req, res) => {
   try {
-    console.log('🔍 Debug - Usuario autenticado:', req.user);
-    console.log('🔍 Debug - Datos recibidos:', req.body);
+    console.log('🔍 Creando rifa - Usuario:', req.user.id);
+    console.log('🔍 Datos recibidos:', JSON.stringify(req.body, null, 2));
     
     const {
       nombre,
@@ -670,109 +858,115 @@ router.post('/', authenticateToken, requireAdmin, sanitizeInput, validateRifa, a
       enlaceTransmision,
       metodoSorteo,
       testigos,
-      premios,
-      fotosPremios,
+      premios = [],
+      fotosPremios = [],
       formasPago,
-      // Campos de ubicación
       pais,
       estado,
       ciudad,
       manejaEnvio,
       alcance,
-      categoria
+      categoria,
+      pixKey,
+      aceitaCartao,
+      loteriaTipo,
+      numeroSorteio,
+      videoUrl
     } = req.body;
 
-    // Generar ID único
     const rifaId = Date.now().toString();
+    console.log(`📌 Creando rifa con ID: ${rifaId}`);
 
-    // Crear rifa
+    // Insertar rifa
     const rifaResult = await query(`
       INSERT INTO rifas (
         id, usuario_id, nombre, descripcion, precio, fecha_fin, tipo, 
         cantidad_elementos, elementos_personalizados, reglas, es_privada,
         fecha_sorteo, plataforma_transmision, otra_plataforma, enlace_transmision,
         metodo_sorteo, testigos, pais, estado, ciudad, maneja_envio, alcance, categoria,
-        numero_ganador, resultado_publicado
+        numero_ganador, resultado_publicado, activa,
+        pix_key, aceita_cartao, loteria_tipo, numero_sorteio, video_url
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23,
-        NULL, false
+        NULL, false, true,
+        $24, $25, $26, $27, $28
       ) RETURNING *
     `, [
       rifaId, req.user.id, nombre, descripcion, precio, fechaFin, tipo,
       cantidadElementos, JSON.stringify(elementosPersonalizados || []), reglas, esPrivada || false,
       fechaSorteo, plataformaTransmision, otraPlataforma, enlaceTransmision,
-      metodoSorteo, testigos, pais, estado, ciudad, manejaEnvio || false, alcance || 'local', categoria || null
+      metodoSorteo, testigos, pais, estado, ciudad, manejaEnvio || false, alcance || 'local', categoria || null,
+      pixKey || null,
+      aceitaCartao || false,
+      loteriaTipo || null,
+      numeroSorteio || null,
+      videoUrl || null
     ]);
 
     const rifa = rifaResult.rows[0];
-    console.log('🔍 Debug - Rifa creada:', rifa);
+    console.log(`✅ Rifa creada: ${rifa.id} - ${rifa.nombre}`);
 
-    // Insertar premios si existen y guardar sus IDs
+    // Insertar premios
     const premioIds = [];
     if (premios && premios.length > 0) {
-      console.log('🔍 Debug - Insertando premios:', premios.length);
-      for (const premio of premios) {
-        console.log('🔍 Debug - Premio:', { nombre: premio.nombre, fotos: premio.fotos?.length || 0 });
+      console.log(`📦 Insertando ${premios.length} premios...`);
+      for (let i = 0; i < premios.length; i++) {
+        const premio = premios[i];
         const premioResult = await query(
-          'INSERT INTO premios (rifa_id, nombre, descripcion, posicion) VALUES ($1, $2, $3, $4) RETURNING id',
-          [rifaId, premio.nombre, premio.descripcion, premio.posicion]
+          `INSERT INTO premios (rifa_id, nombre, descripcion, posicion) 
+           VALUES ($1, $2, $3, $4) RETURNING id`,
+          [rifaId, premio.nombre, premio.descripcion || '', premio.posicion || i + 1]
         );
         premioIds.push(premioResult.rows[0].id);
+        console.log(`  ✅ Premio ${i + 1}: ${premio.nombre}`);
       }
     }
 
-    // Insertar fotos de premios si existen, asociándolas a sus premios
-    console.log('🔍 Debug - fotosPremios recibido:', fotosPremios);
-    console.log('🔍 Debug - Tipo de fotosPremios:', typeof fotosPremios);
-    console.log('🔍 Debug - Es array?:', Array.isArray(fotosPremios));
-    console.log('🔍 Debug - Longitud:', fotosPremios?.length || 0);
-    
+    // =====================================================
+    // INSERTAR FOTOS - CORREGIDO (sin premio_id)
+    // =====================================================
     if (fotosPremios && fotosPremios.length > 0) {
-      console.log('🔍 Debug - Insertando fotos de premios:', fotosPremios.length);
-      for (const foto of fotosPremios) {
-        const urlFoto = foto.url || foto.url_foto || '';
-        const premioId = foto.premioIndex !== undefined && premioIds[foto.premioIndex] 
-          ? premioIds[foto.premioIndex] 
-          : null;
+      console.log(`📸 Procesando ${fotosPremios.length} fotos...`);
+      
+      for (let i = 0; i < fotosPremios.length; i++) {
+        const foto = fotosPremios[i];
+        // Obtener URL de diferentes formatos posibles
+        let urlFoto = foto.url || foto.url_foto || foto.urlFoto || '';
         
-        console.log('🔍 Debug - Insertando foto:', { 
-          url: urlFoto, 
-          descripcion: foto.descripcion, 
-          orden: foto.orden,
-          premioId: premioId,
-          premioNombre: foto.premioNombre
-        });
+        console.log(`  Foto ${i}: URL original = ${urlFoto}`);
         
-        if (urlFoto) {
-          // Intentar insertar con premio_id si existe la columna, sino sin ella
-          try {
-            await query(
-              'INSERT INTO fotos_premios (rifa_id, premio_id, url_foto, descripcion, orden) VALUES ($1, $2, $3, $4, $5)',
-              [rifaId, premioId, urlFoto, foto.descripcion || '', foto.orden || 0]
-            );
-          } catch (err) {
-            // Si la columna premio_id no existe, insertar sin ella
-            if (err.message.includes('premio_id') || err.message.includes('does not exist')) {
-              await query(
-                'INSERT INTO fotos_premios (rifa_id, url_foto, descripcion, orden) VALUES ($1, $2, $3, $4)',
-                [rifaId, urlFoto, foto.descripcion || '', foto.orden || 0]
-              );
-            } else {
-              throw err;
-            }
-          }
-        } else {
-          console.warn('⚠️ Foto sin URL, omitiendo:', foto);
+        // Saltar URLs vacías
+        if (!urlFoto || urlFoto === '') {
+          console.log(`  ⚠️ Foto ${i} sin URL, saltando...`);
+          continue;
+        }
+        
+        // Saltar URLs blob (son temporales y no sirven)
+        if (urlFoto.startsWith('blob:')) {
+          console.log(`  ⚠️ Foto ${i} es blob URL, ignorando: ${urlFoto.substring(0, 50)}...`);
+          continue;
+        }
+        
+        try {
+          // 🔥 CORREGIDO: INSERT sin premio_id
+          await query(
+            `INSERT INTO fotos_premios (rifa_id, url_foto, descripcion, orden) 
+             VALUES ($1, $2, $3, $4)`,
+            [rifaId, urlFoto, foto.descripcion || '', i]
+          );
+          console.log(`  ✅ Foto ${i} guardada: ${urlFoto.substring(0, 80)}`);
+        } catch (err) {
+          console.error(`  ❌ Error guardando foto ${i}:`, err.message);
         }
       }
     } else {
-      console.log('⚠️ No hay fotos de premios para insertar');
+      console.log('📸 No se recibieron fotos para guardar');
     }
 
-    // Insertar formas de pago si existen
-    if (formasPago) {
-      // Normalizar claves recibidas (aceptar snake_case y camelCase)
-      const fp = formasPago || {};
+    // Insertar formas de pago
+    if (formasPago && Object.keys(formasPago).length > 0) {
+      console.log('💳 Insertando formas de pago...');
+      const fp = formasPago;
       const normalizado = {
         tipo_pago: fp.tipo_pago || fp.tipoPago || 'transferencia',
         banco: fp.banco || null,
@@ -800,7 +994,15 @@ router.post('/', authenticateToken, requireAdmin, sanitizeInput, validateRifa, a
         normalizado.whatsapp,
         normalizado.otros_detalles
       ]);
+      console.log('✅ Formas de pago guardadas');
     }
+
+    // Verificar que las fotos se guardaron
+    const fotosVerificacion = await query(
+      'SELECT id, url_foto FROM fotos_premios WHERE rifa_id = $1',
+      [rifaId]
+    );
+    console.log(`📸 Verificación final: ${fotosVerificacion.rows.length} fotos guardadas`);
 
     res.status(201).json({
       message: 'Rifa creada exitosamente',
@@ -812,26 +1014,87 @@ router.post('/', authenticateToken, requireAdmin, sanitizeInput, validateRifa, a
         fechaFin: rifa.fecha_fin,
         tipo: rifa.tipo,
         cantidadElementos: rifa.cantidad_elementos,
-        esPrivada: rifa.es_privada
+        esPrivada: rifa.es_privada,
+        fotosGuardadas: fotosVerificacion.rows.length
       }
     });
 
   } catch (error) {
-    console.error('Error creando rifa:', error);
+    console.error('❌ Error creando rifa:', error);
     res.status(500).json({
       error: 'Error interno del servidor',
-      code: 'INTERNAL_ERROR'
+      code: 'INTERNAL_ERROR',
+      details: error.message
     });
   }
 });
 
+// POST /api/rifas/upload-imagen - Subir imagen temporalmente
+
+
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configurar multer para guardar imágenes
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = 'uploads/rifas/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'rifa-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Solo se permiten imágenes'));
+  }
+});
+
+// POST /api/rifas/upload-imagen - Subir imagen temporalmente
+// POST /api/rifas/upload-imagen - Subir imagen temporalmente
+router.post('/upload-imagen', authenticateToken, upload.single('imagen'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió ninguna imagen' });
+    }
+    
+    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/rifas/${req.file.filename}`;
+    
+    console.log('📸 Imagen subida:', imageUrl);
+    
+    res.json({
+      success: true,
+      url: imageUrl,
+      filename: req.file.filename
+    });
+    
+  } catch (error) {
+    console.error('Error subiendo imagen:', error);
+    res.status(500).json({ error: 'Error al subir la imagen' });
+  }
+});
 // PUT /api/rifas/:id - Actualizar rifa
 router.put('/:id', authenticateToken, requireAdmin, validateRifaId, sanitizeInput, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
 
-    // Verificar que la rifa pertenece al usuario
     const rifaResult = await query(
       'SELECT usuario_id FROM rifas WHERE id = $1',
       [id]
@@ -851,13 +1114,17 @@ router.put('/:id', authenticateToken, requireAdmin, validateRifaId, sanitizeInpu
       });
     }
 
-    // Construir query de actualización dinámicamente
     const allowedFields = [
       'nombre', 'descripcion', 'precio', 'fecha_fin', 'reglas', 'es_privada',
       'fecha_sorteo', 'plataforma_transmision', 'otra_plataforma', 
       'enlace_transmision', 'metodo_sorteo', 'testigos',
       'pais', 'estado', 'ciudad', 'maneja_envio', 'alcance',
-      'numero_ganador', 'resultado_publicado'
+      'numero_ganador', 'resultado_publicado', 'categoria',
+      { from: 'pixKey', to: 'pix_key' },
+      { from: 'aceitaCartao', to: 'aceita_cartao' },
+      { from: 'loteriaTipo', to: 'loteria_tipo' },
+      { from: 'numeroSorteio', to: 'numero_sorteio' },
+      { from: 'videoUrl', to: 'video_url' }
     ];
 
     const updateFields = [];
@@ -865,9 +1132,11 @@ router.put('/:id', authenticateToken, requireAdmin, validateRifaId, sanitizeInpu
     let paramCount = 0;
 
     Object.keys(updates).forEach(key => {
-      if (allowedFields.includes(key) && updates[key] !== undefined) {
+      const fieldConfig = allowedFields.find(f => f === key || (f.from && f.from === key));
+      if (fieldConfig) {
+        const dbField = typeof fieldConfig === 'string' ? fieldConfig : fieldConfig.to;
         paramCount++;
-        updateFields.push(`${key} = $${paramCount}`);
+        updateFields.push(`${dbField} = $${paramCount}`);
         updateValues.push(updates[key]);
       }
     });
@@ -908,7 +1177,6 @@ router.delete('/:id', authenticateToken, requireAdmin, validateRifaId, async (re
   try {
     const { id } = req.params;
 
-    // Verificar que la rifa pertenece al usuario
     const rifaResult = await query(
       'SELECT usuario_id, deleted_at FROM rifas WHERE id = $1',
       [id]
@@ -928,7 +1196,6 @@ router.delete('/:id', authenticateToken, requireAdmin, validateRifaId, async (re
       });
     }
 
-    // Verificar si ya está eliminada
     if (rifaResult.rows[0].deleted_at) {
       return res.status(400).json({
         error: 'La rifa ya está eliminada',
@@ -936,7 +1203,6 @@ router.delete('/:id', authenticateToken, requireAdmin, validateRifaId, async (re
       });
     }
 
-    // Baja lógica: marcar como eliminada en lugar de borrar físicamente
     await query(
       'UPDATE rifas SET deleted_at = CURRENT_TIMESTAMP, activa = false WHERE id = $1',
       [id]
@@ -956,12 +1222,11 @@ router.delete('/:id', authenticateToken, requireAdmin, validateRifaId, async (re
   }
 });
 
-// GET /api/rifas/preview/:id - Vista previa de rifa (sin autenticación)
+// GET /api/rifas/preview/:id - Vista previa de rifa
 router.get('/preview/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Obtener datos de la rifa
     const rifaResult = await query(`
       SELECT 
         r.*,
@@ -981,13 +1246,11 @@ router.get('/preview/:id', async (req, res) => {
 
     const rifa = rifaResult.rows[0];
 
-    // Obtener números vendidos y reservados
     const [vendidosResult, reservadosResult] = await Promise.all([
       query('SELECT elemento FROM elementos_vendidos WHERE rifa_id = $1', [id]),
       query('SELECT elemento FROM elementos_reservados WHERE rifa_id = $1 AND activo = true', [id])
     ]);
 
-    // Obtener estadísticas básicas
     const statsResult = await query(`
       SELECT 
         COUNT(DISTINCT p.id) as total_participantes,

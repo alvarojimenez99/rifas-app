@@ -1,0 +1,38 @@
+ El volumen de la unidad D es DATA
+ El n£mero de serie del volumen es: 24FD-90DA
+
+ Directorio de D:\ajimenez\rifas\rifas-app\backend\migrations
+
+03/30/2026  12:24 p. m.    <DIR>          .
+03/30/2026  11:23 a. m.    <DIR>          ..
+03/30/2026  11:15 a. m.             1,057 add_billing_model_to_ads.sql
+03/30/2026  11:15 a. m.             1,225 add_business_profile_to_advertisers.sql
+03/30/2026  11:15 a. m.             2,006 add_credits_to_advertisers.sql
+03/30/2026  11:15 a. m.               419 add_location_to_ad_clicks.sql
+03/30/2026  11:15 a. m.             5,865 add_location_to_rifas.sql
+03/30/2026  11:15 a. m.               821 add_multiple_locations_to_ads.sql
+03/30/2026  11:15 a. m.             1,158 add_notifications_table.sql
+03/30/2026  11:15 a. m.               511 add_premio_id_to_fotos_premios.sql
+03/30/2026  11:15 a. m.               362 add_resultado_to_rifas.sql
+03/30/2026  11:15 a. m.               598 add_soft_delete_to_rifas.sql
+03/30/2026  11:15 a. m.             2,873 add_stripe_connect.sql
+03/30/2026  11:15 a. m.            15,594 add_usa_states_cities.sql
+03/30/2026  11:15 a. m.             4,893 clean_rifas_data.sql
+03/30/2026  11:15 a. m.               705 create_ad_plans.sql
+03/30/2026  11:15 a. m.               544 create_anunciantes.sql
+03/30/2026  11:15 a. m.             1,646 create_anuncios.sql
+03/30/2026  11:15 a. m.             1,084 create_creator_plans.sql
+03/30/2026  11:15 a. m.             2,391 create_cupones.sql
+03/30/2026  11:15 a. m.             3,505 create_ratings_table.sql
+03/30/2026  11:15 a. m.               646 create_user_plan_subscriptions.sql
+03/30/2026  11:15 a. m.             1,347 create_usuarios_participantes.sql
+03/30/2026  12:24 p. m.                 0 listado.txt
+03/30/2026  11:15 a. m.               442 make_email_required.sql
+03/30/2026  11:15 a. m.             1,934 update_commissions_with_stripe_costs.sql
+03/30/2026  11:15 a. m.             1,498 update_creator_plans_pricing.sql
+03/30/2026  11:15 a. m.             1,351 update_plan_features_realistic.sql
+03/30/2026  11:15 a. m.             1,173 update_plan_features_stripe_only.sql
+03/30/2026  11:15 a. m.               698 update_plan_prices.sql
+03/30/2026  11:15 a. m.             1,458 update_rifas_con_estadisticas_view.sql
+              29 archivos         57,804 bytes
+               2 dirs  724,978,298,880 bytes libres

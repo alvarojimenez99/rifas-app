@@ -97,60 +97,24 @@ export const validateNombre = (nombre, minLength = 2) => {
  * @param {boolean} required - Si es requerido (default: false)
  * @returns {object} - { valid: boolean, error: string }
  */
-export const validateTelefono = (telefono, required = false) => {
-  if (!telefono || telefono.trim() === '') {
-    if (required) {
-      return { valid: false, error: 'El teléfono es requerido' };
-    }
-    return { valid: true, error: '' }; // Opcional
+// Validación de teléfono - Acepta números brasileños
+export const validateTelefono = (telefono) => {
+  if (!telefono) {
+    return { valid: false, error: 'Telefone é obrigatório' };
   }
-
-  // Validar longitud máxima (incluyendo espacios y caracteres especiales)
-  if (telefono.length > 20) {
-    return { valid: false, error: 'El teléfono es demasiado largo (máximo 20 caracteres)' };
-  }
-
-  // Remover espacios, guiones, paréntesis y puntos para validar
-  const cleaned = telefono.replace(/[\s\-().]/g, '');
   
-  // Validar que solo contenga números y el símbolo + al inicio
-  if (!/^\+?[0-9]+$/.test(cleaned)) {
-    return { valid: false, error: 'El teléfono solo puede contener números y el símbolo + al inicio' };
-  }
-
-  // Validar longitud mínima (al menos 10 dígitos)
-  const soloNumeros = cleaned.replace(/^\+/, '');
-  if (soloNumeros.length < 10) {
-    return { valid: false, error: 'El teléfono debe tener al menos 10 dígitos' };
-  }
-
-  // Validar longitud máxima (máximo 15 dígitos según estándar internacional)
-  if (soloNumeros.length > 15) {
-    return { valid: false, error: 'El teléfono no puede tener más de 15 dígitos' };
-  }
-
-  // Validar formato mexicano específico: +52 seguido de 10 dígitos, o solo 10 dígitos
-  // Formato mexicano: +52 seguido de 10 dígitos que empiezan con 1-9
-  const formatoMexicano = /^(\+52)?[1-9]\d{9}$/;
+  // Remover todos os caracteres não numéricos
+  const numeros = telefono.replace(/\D/g, '');
   
-  // Si tiene código de país +52, validar formato mexicano
-  if (cleaned.startsWith('+52')) {
-    if (!formatoMexicano.test(cleaned)) {
-      return { valid: false, error: 'El teléfono mexicano debe tener 10 dígitos después de +52 (ej: +52 55 1234 5678)' };
-    }
-  } else if (soloNumeros.length === 10) {
-    // Si tiene 10 dígitos sin código de país, validar que empiece con 1-9
-    if (!/^[1-9]\d{9}$/.test(soloNumeros)) {
-      return { valid: false, error: 'El teléfono debe empezar con un dígito del 1 al 9 (ej: 55 1234 5678)' };
-    }
-  } else if (soloNumeros.length > 10) {
-    // Si tiene más de 10 dígitos, debe tener código de país
-    if (!cleaned.startsWith('+')) {
-      return { valid: false, error: 'Los números internacionales deben incluir el código de país con + (ej: +52 55 1234 5678)' };
-    }
+  // Validar número brasileño: 10 ou 11 dígitos (com ou sem DDD)
+  // Padrões: 11999999999 (11 dígitos) ou 999999999 (9 dígitos)
+  const isValid = numeros.length >= 10 && numeros.length <= 11;
+  
+  if (!isValid) {
+    return { valid: false, error: 'Digite um número válido (DDD + 8 ou 9 dígitos)' };
   }
-
-  return { valid: true, error: '' };
+  
+  return { valid: true, error: null };
 };
 
 /**

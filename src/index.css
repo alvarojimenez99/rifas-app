@@ -1,26 +1,675 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
-html {
-  margin: 0;
-  padding: 0;
+:root {
+  --primary: #2ecc71;
+  --primary-dark: #27ae60;
+  --primary-light: #a3e4b0;
+  --secondary: #f1c40f;
+  --secondary-dark: #e67e22;
+  --dark: #2c3e50;
+  --dark-light: #34495e;
+  --light: #ecf0f1;
+  --white: #ffffff;
+  --gray: #95a5a6;
+  --danger: #e74c3c;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --info: #3498db;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+  --transition: all 0.3s ease;
 }
 
 body {
   margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
+  background-color: var(--light);
+  color: var(--dark);
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Estilos globales */
+a {
+  text-decoration: none;
+  color: var(--primary);
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--primary-dark);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+/* Utilidades */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: var(--dark);
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.card {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* ============================================
+   GRANAFÁCIL - HERO SECTION MODERNA
+   ============================================ */
+
+   .grana-hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 100px 0;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0a0a2a 0%, #0f0f2a 100%);
+  }
+  
+  .grana-hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+  }
+  
+  .grana-hero-bg-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(0, 210, 106, 0.15) 0%, transparent 50%);
+  }
+  
+  .grana-hero-bg-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath fill='%2300d26a' fill-opacity='0.05' d='M100 0L200 100L100 200L0 100L100 0z'/%3E%3C/svg%3E");
+    background-size: 30px 30px;
+    opacity: 0.3;
+    animation: grana-pattern-move 40s linear infinite;
+  }
+  
+  @keyframes grana-pattern-move {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+  }
+  
+  .grana-hero-container {
+    position: relative;
+    z-index: 2;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+  }
+  
+  /* Left Side */
+  .grana-hero-left {
+    animation: grana-fade-up 0.8s ease;
+  }
+  
+  .grana-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 210, 106, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 8px 20px;
+    border-radius: 50px;
+    border: 1px solid rgba(0, 210, 106, 0.3);
+    margin-bottom: 32px;
+  }
+  
+  .grana-hero-badge-icon {
+    font-size: 18px;
+  }
+  
+  .grana-hero-badge span:last-child {
+    font-size: 14px;
+    font-weight: 500;
+    color: #00d26a;
+  }
+  
+  .grana-hero-title {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 24px;
+  }
+  
+  .grana-hero-title-gradient {
+    background: linear-gradient(135deg, #00d26a 0%, #00ff88 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .grana-hero-title-gold {
+    color: #ffd700;
+  }
+  
+  .grana-hero-subtitle {
+    font-size: 24px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 16px;
+  }
+  
+  .grana-hero-description {
+    font-size: 16px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 32px;
+    max-width: 500px;
+  }
+  
+  /* Stats */
+  .grana-hero-stats {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 40px;
+  }
+  
+  .grana-hero-stat {
+    text-align: center;
+  }
+  
+  .grana-hero-stat-number {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, #ffd700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .grana-hero-stat-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  /* Buttons */
+  .grana-hero-buttons {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  
+  .grana-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #00d26a 0%, #00b85a 100%);
+    border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 210, 106, 0.3);
+  }
+  
+  .grana-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 210, 106, 0.4);
+  }
+  
+  .grana-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .grana-btn-outline:hover {
+    border-color: #00d26a;
+    background: rgba(0, 210, 106, 0.1);
+  }
+  
+  .grana-btn-icon {
+    transition: transform 0.3s ease;
+  }
+  
+  .grana-btn-primary:hover .grana-btn-icon,
+  .grana-btn-outline:hover .grana-btn-icon {
+    transform: translateX(4px);
+  }
+  
+  /* Trust */
+  .grana-hero-trust {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  
+  .grana-hero-payment-icons {
+    display: flex;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 16px;
+    border-radius: 50px;
+  }
+  
+  .grana-hero-payment-icons span {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  /* Right Side - Card */
+  .grana-hero-right {
+    animation: grana-fade-up 0.8s ease 0.2s both;
+  }
+  
+  .grana-hero-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .grana-hero-card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00d26a, #ffd700, #00d26a);
+    background-size: 200% 100%;
+    animation: grana-glow-move 3s linear infinite;
+  }
+  
+  @keyframes grana-glow-move {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+  
+  .grana-hero-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .grana-hero-card-header-dots {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .grana-hero-card-header-dots span {
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+  }
+  
+  .grana-hero-card-badge {
+    font-size: 12px;
+    background: linear-gradient(135deg, #ffd700, #ffb347);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    color: #0a0a2a;
+  }
+  
+  .grana-hero-card-content {
+    padding: 32px 24px;
+    text-align: center;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  
+  .grana-card-enter {
+    animation: grana-card-slide-in 0.4s ease forwards;
+  }
+  
+  .grana-card-exit {
+    animation: grana-card-slide-out 0.3s ease forwards;
+  }
+  
+  @keyframes grana-card-slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes grana-card-slide-out {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+  }
+  
+  .grana-hero-card-prize-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  
+  .grana-hero-card-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 8px;
+  }
+  
+  .grana-hero-card-raffle {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 24px;
+  }
+  
+  .grana-hero-card-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 24px;
+  }
+  
+  .grana-hero-card-stat {
+    text-align: center;
+  }
+  
+  .grana-hero-card-stat-label {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 4px;
+  }
+  
+  .grana-hero-card-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+  }
+  
+  .grana-days {
+    color: #ffd700;
+  }
+  
+  .grana-hero-card-price {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .grana-hero-card-price-label {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 8px;
+  }
+  
+  .grana-hero-card-price-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: #00d26a;
+  }
+  
+  .grana-hero-card-price-currency {
+    font-size: 20px;
+    margin-right: 4px;
+  }
+  
+  .grana-hero-card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px 24px;
+    border-radius: 50px;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+  
+  .grana-hero-card-btn:hover {
+    background: #00d26a;
+    color: #0a0a2a;
+    transform: translateY(-2px);
+  }
+  
+  .grana-hero-card-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .grana-indicator {
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .grana-indicator.active {
+    width: 24px;
+    background: #00d26a;
+    border-radius: 4px;
+  }
+  
+  /* Loader */
+  .grana-loader {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 210, 106, 0.3);
+    border-top-color: #00d26a;
+    border-radius: 50%;
+    animation: grana-spin 1s linear infinite;
+    margin: 20px auto;
+  }
+  
+  @keyframes grana-spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  /* Animations */
+  @keyframes grana-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive */
+  @media (max-width: 968px) {
+    .grana-hero-container {
+      grid-template-columns: 1fr;
+      gap: 40px;
+      text-align: center;
+    }
+    
+    .grana-hero-description {
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .grana-hero-stats {
+      justify-content: center;
+    }
+    
+    .grana-hero-buttons {
+      justify-content: center;
+    }
+    
+    .grana-hero-trust {
+      justify-content: center;
+    }
+    
+    .grana-hero-title {
+      font-size: 48px;
+    }
+    
+    .grana-hero-subtitle {
+      font-size: 20px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .grana-hero-title {
+      font-size: 36px;
+    }
+    
+    .grana-hero-stats {
+      gap: 20px;
+    }
+    
+    .grana-hero-stat-number {
+      font-size: 22px;
+    }
+    
+    .grana-hero-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .grana-btn-primary,
+    .grana-btn-outline {
+      width: 100%;
+      justify-content: center;
+    }
+  }

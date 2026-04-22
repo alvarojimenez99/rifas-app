@@ -1,0 +1,798 @@
+/* ============================================
+   PARTICIPANT DASHBOARD - GRANAFÁCIL
+   ============================================ */
+
+/* Forzar fondo oscuro global */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: linear-gradient(135deg, #0a0a2a 0%, #0f0f2a 100%) !important;
+  min-height: 100vh;
+}
+
+.App-main {
+  background: linear-gradient(135deg, #0a0a2a 0%, #0f0f2a 100%) !important;
+  min-height: 100vh;
+}
+
+/* Dashboard principal */
+.participant-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 24px;
+  background: transparent !important;
+  min-height: 100vh;
+}
+
+/* Header */
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.dashboard-header h1 {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff, #ffd700);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.dashboard-header p {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Tabs */
+.dashboard-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+}
+
+.dashboard-tabs .tab-btn {
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-tabs .tab-btn:hover {
+  color: #fff;
+}
+
+.dashboard-tabs .tab-btn.active {
+  color: #00d26a;
+  border-bottom: 2px solid #00d26a;
+}
+
+/* ============================================
+   ACTIVE RAFFLES
+   ============================================ */
+
+.active-raffles {
+  background: transparent !important;
+}
+
+.active-raffles .raffles-header {
+  margin-bottom: 24px;
+}
+
+.active-raffles .raffles-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.active-raffles .raffles-header p {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Filtros */
+.raffles-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.raffles-filters .search-box {
+  flex: 1;
+  min-width: 250px;
+}
+
+.raffles-filters .search-box input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 40px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.raffles-filters .search-box input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.raffles-filters .search-box input:focus {
+  outline: none;
+  border-color: #00d26a;
+}
+
+.raffles-filters select {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 40px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.raffles-filters select:focus {
+  outline: none;
+  border-color: #00d26a;
+}
+
+/* Rifas Grid */
+.raffles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Raffle Card */
+.participant-raffle-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.participant-raffle-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 210, 106, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.raffle-card-image {
+  position: relative;
+  height: 180px;
+  background: linear-gradient(135deg, rgba(0, 210, 106, 0.1), rgba(255, 215, 0, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.raffle-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.raffle-card-placeholder {
+  font-size: 64px;
+}
+
+.video-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #ffd700;
+}
+
+.urgent-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #e74c3c;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.raffle-card-content {
+  padding: 20px;
+}
+
+.raffle-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.raffle-card-description {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.raffle-card-prize {
+  background: rgba(0, 210, 106, 0.1);
+  padding: 8px 12px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prize-icon {
+  font-size: 18px;
+}
+
+.prize-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* Progress */
+.raffle-card-progress {
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  height: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, #00d26a, #ffd700);
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Info */
+.raffle-card-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.info-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+/* Actions */
+.raffle-card-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-participate {
+  width: 100%;
+  text-align: center;
+  padding: 10px;
+  background: linear-gradient(135deg, #00d26a, #00b85a);
+  border: none;
+  border-radius: 40px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-participate:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 210, 106, 0.3);
+}
+
+.btn-participate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   MY HISTORY
+   ============================================ */
+
+.my-history {
+  background: transparent !important;
+}
+
+.my-history .history-header {
+  margin-bottom: 24px;
+}
+
+.my-history .history-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-item {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-item-header h3 {
+  color: #ffd700;
+  font-size: 18px;
+}
+
+.history-item-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.detail-value {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.detail.winner .detail-value {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+/* ============================================
+   MY PRIZES
+   ============================================ */
+
+.my-prizes {
+  background: transparent !important;
+}
+
+.my-prizes .prizes-header {
+  margin-bottom: 24px;
+}
+
+.my-prizes .prizes-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.prizes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prize-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px;
+  flex-wrap: wrap;
+  transition: all 0.3s ease;
+}
+
+.prize-card:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.prize-icon {
+  font-size: 48px;
+}
+
+.prize-info {
+  flex: 1;
+}
+
+.prize-info h3 {
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.prize-info p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 4px 0;
+}
+
+.prize-status .status-badge {
+  background: rgba(0, 210, 106, 0.2);
+  color: #00d26a;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ============================================
+   PROFILE SETTINGS
+   ============================================ */
+
+.profile-settings {
+  background: transparent !important;
+}
+
+.profile-settings .profile-header {
+  margin-bottom: 24px;
+}
+
+.profile-settings .profile-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.profile-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.profile-section {
+  background: rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.profile-section h3 {
+  color: #ffd700;
+  margin-bottom: 20px;
+  font-size: 18px;
+  border-left: 3px solid #00d26a;
+  padding-left: 12px;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-form .form-group {
+  margin-bottom: 0;
+}
+
+.profile-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.profile-form input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  color: #fff;
+  width: 100%;
+  font-size: 14px;
+}
+
+.profile-form input:focus {
+  outline: none;
+  border-color: #00d26a;
+}
+
+.profile-form .btn-save {
+  background: linear-gradient(135deg, #00d26a, #00b85a);
+  border: none;
+  padding: 12px;
+  border-radius: 40px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.3s ease;
+}
+
+.profile-form .btn-save:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 210, 106, 0.3);
+}
+
+/* ============================================
+   EMPTY STATES
+   ============================================ */
+
+.no-raffles,
+.no-history,
+.no-prizes {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 24px;
+}
+
+.no-raffles-icon,
+.no-history-icon,
+.no-prizes-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.no-raffles h3,
+.no-history h3,
+.no-prizes h3 {
+  font-size: 20px;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.no-raffles p,
+.no-history p,
+.no-prizes p {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================
+   LOADING
+   ============================================ */
+
+.participant-loading {
+  text-align: center;
+  padding: 60px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ============================================
+   STATUS BADGES
+   ============================================ */
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.confirmed {
+  background: rgba(0, 210, 106, 0.2);
+  color: #00d26a;
+}
+
+.status-badge.pending {
+  background: rgba(241, 196, 15, 0.2);
+  color: #f1c40f;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .raffles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .participant-dashboard {
+    padding: 20px 16px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 24px;
+  }
+  
+  .dashboard-tabs .tab-btn span:last-child {
+    display: none;
+  }
+  
+  .dashboard-tabs .tab-btn {
+    padding: 10px 16px;
+  }
+  
+  .profile-sections {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .raffles-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .raffles-filters {
+    flex-direction: column;
+  }
+  
+  .raffles-filters select {
+    width: 100%;
+  }
+  
+  .history-item-details {
+    grid-template-columns: 1fr;
+  }
+  
+  .prize-card {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ============================================
+   FORZAR FONDO OSCURO EN PARTICIPANT DASHBOARD
+   ============================================ */
+
+/* Forzar fondo oscuro en el body y root */
+html, body, #root, .App, .App-main {
+  background: linear-gradient(135deg, #0a0a2a 0%, #0f0f2a 100%) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 100vh !important;
+}
+
+/* Forzar que el dashboard del participante herede el fondo */
+.participant-dashboard {
+  background: transparent !important;
+}
+
+/* Forzar todas las secciones internas */
+.participant-dashboard > div,
+.active-raffles,
+.my-history,
+.my-prizes,
+.profile-settings {
+  background: transparent !important;
+}
+
+/* Forzar que las tarjetas tengan fondo semi-transparente oscuro */
+.participant-raffle-card,
+.history-item,
+.prize-card,
+.profile-section {
+  background: rgba(10, 10, 42, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Asegurar que el contenido del dashboard no tenga fondo blanco */
+.raffles-filters .search-box input,
+.raffles-filters select {
+  background: rgba(10, 10, 42, 0.8) !important;
+}
+
+/* Forzar texto en todos los elementos */
+.participant-dashboard * {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Finished badge */
+.finished-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #ffd700, #ffb347);
+  color: #0a0a2a;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.participant-raffle-card.finished {
+  opacity: 0.9;
+}
+
+.participant-raffle-card.finished .raffle-card-image {
+  filter: grayscale(0.3);
+}
+
+.raffle-card-winner {
+  background: linear-gradient(135deg, rgba(0, 210, 106, 0.15), rgba(255, 215, 0, 0.1));
+  border-radius: 12px;
+  padding: 10px;
+  margin: 12px 0;
+  text-align: center;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.raffle-card-winner span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.raffle-card-winner strong {
+  font-size: 20px;
+  color: #ffd700;
+  font-family: monospace;
+}
+
+.btn-view {
+  width: 100%;
+  text-align: center;
+  padding: 10px;
+  background: linear-gradient(135deg, #00d26a, #00b85a);
+  border: none;
+  border-radius: 40px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-view:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 210, 106, 0.3);
+}

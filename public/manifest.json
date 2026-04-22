@@ -1,34 +1,29 @@
 {
-  "short_name": "SorteoHub",
-  "name": "SorteoHub - Plataforma profesional para crear rifas sin fines de lucro. Made by AureLA Solutions",
-  "description": "Plataforma profesional para crear rifas sin fines de lucro. Made by AureLA Solutions",
+  "short_name": "GranaFácil",
+  "name": "GranaFácil - Sua chance de ganhar prêmios incríveis",
+  "description": "Participe de rifas online seguras e concorra a prêmios que mudam vidas. Escolha seus números, pague com PIX e acompanhe os sorteios ao vivo.",
   "icons": [
     {
-      "src": "icons/icon-192x192.png",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300d26a'/%3E%3Cstop offset='100%25' stop-color='%23ffd700'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='48' fill='url(%23grad)' stroke='white' stroke-width='2'/%3E%3Ctext x='50' y='72' font-size='48' text-anchor='middle' fill='white' font-weight='bold'%3E💰%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512x512.png",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300d26a'/%3E%3Cstop offset='100%25' stop-color='%23ffd700'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='48' fill='url(%23grad)' stroke='white' stroke-width='2'/%3E%3Ctext x='50' y='72' font-size='48' text-anchor='middle' fill='white' font-weight='bold'%3E💰%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
-    },
-    {
-      "src": "icons/AureLA.png",
-      "sizes": "any",
-      "type": "image/png"
     }
   ],
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#1e22aa",
-  "background_color": "#ffffff",
+  "theme_color": "#00d26a",
+  "background_color": "#0a0a2a",
   "orientation": "portrait-primary",
-  "categories": ["business", "productivity", "utilities"],
-  "lang": "es",
+  "categories": ["entertainment", "games", "lifestyle"],
+  "lang": "pt-BR",
   "dir": "ltr",
   "scope": "/",
-  "id": "sorteohub-rifas-app"
+  "id": "granafacil-rifas-app"
 }

@@ -127,8 +127,7 @@ async function obtenerHistorialParticipaciones(email) {
       FROM participantes p
       JOIN rifas r ON p.rifa_id = r.id
       LEFT JOIN usuarios u ON r.usuario_id = u.id
-      JOIN usuarios_participantes up ON p.usuario_participante_id = up.id
-      WHERE up.email = $1
+      WHERE p.email = $1
       ORDER BY p.fecha_participacion DESC
     `, [email]);
 

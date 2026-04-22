@@ -20,6 +20,15 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // NO interceptar peticiones a la API
+  if (url.pathname.startsWith('/api/') || url.hostname === 'localhost' && url.port === '5001') {
+    // Dejar que las peticiones a la API pasen directamente sin cachear
+    return;
+  }
+  
+  // Para otras peticiones, usar cache
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

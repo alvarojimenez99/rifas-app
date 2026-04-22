@@ -6,10 +6,20 @@ const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
-// Validar teléfono (formato mexicano)
+// Validar teléfono - Acepta cualquier formato internacional
 const isValidPhone = (phone) => {
-  const phoneRegex = /^(\+52)?[\s-]?[1-9]\d{2}[\s-]?\d{3}[\s-]?\d{4}$/;
-  return phoneRegex.test(phone);
+  if (!phone) return true; // Teléfono opcional
+  
+  // Remover todos los caracteres no numéricos
+  const numeros = phone.replace(/\D/g, '');
+  
+  // Validar que tenga al menos 8 dígitos y máximo 15 (estándar internacional)
+  // La mayoría de los países tienen entre 8 y 12 dígitos
+  if (numeros.length >= 8 && numeros.length <= 15) {
+    return true;
+  }
+  
+  return false;
 };
 
 // Validar que sea un número positivo

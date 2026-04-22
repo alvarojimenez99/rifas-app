@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { useRifas } from '../contexts/RifasContext';
 import AdCarousel from './AdCarousel';
-import AffiliateLinks from './AffiliateLinks';
+
 
 const UserDashboard = () => {
   const { t } = useTranslation();
@@ -239,7 +239,7 @@ const UserDashboard = () => {
             </div>
             {/* Sugerencias de afiliados cuando no hay rifas */}
             <div style={{ marginTop: '30px' }}>
-              <AffiliateLinks category="general" limit={3} />
+              
             </div>
           </div>
         ) : (
@@ -333,7 +333,7 @@ const UserDashboard = () => {
         {/* Premios Populares - Siempre visible */}
         {rifasFiltradas.length > 0 && (
           <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid #e5e7eb' }}>
-            <AffiliateLinks category="general" limit={3} />
+            
           </div>
         )}
       </div>
@@ -477,7 +477,7 @@ const UserDashboard = () => {
         {/* Premios Populares - Siempre visible en móvil también */}
         {rifasFiltradas.length > 0 && (
           <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid #e5e7eb' }}>
-            <AffiliateLinks category="general" limit={3} />
+            
           </div>
         )}
       </div>

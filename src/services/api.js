@@ -64,10 +64,16 @@ export const authService = {
     });
   },
 
-
   // Obtener información del usuario actual
   getCurrentUser: async () => {
     return apiRequest('/auth/me');
+  },
+
+  // Verificar email con token
+  verifyEmail: async (token) => {
+    return apiRequest(`/verify/${token}`, {
+      method: 'GET',
+    });
   },
 
   // Cerrar sesión (limpiar token local)
@@ -228,6 +234,11 @@ export const catalogosService = {
   // Obtener estados por país
   getEstados: async (paisCodigo) => {
     return apiRequest(`/catalogos/estados/${paisCodigo}`);
+  },
+
+  // Obtener lista de categorías
+  getCategorias: async () => {
+    return apiRequest('/catalogos/categorias');
   }
 };
 

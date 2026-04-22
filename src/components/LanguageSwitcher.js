@@ -1,34 +1,67 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import './LanguageSwitcher.css';
 
 const LanguageSwitcher = () => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
-  const changeLanguage = (event) => {
-    const lng = event.target.value;
-    i18n.changeLanguage(lng);
+  const changeLanguage = (lng) => {
+    if (i18n && i18n.changeLanguage) {
+      i18n.changeLanguage(lng);
+      localStorage.setItem('language', lng);
+    } else {
+      console.warn('i18n.changeLanguage no está disponible');
+    }
+    setIsOpen(false);
   };
 
+  // Idioma actual, por defecto portugués
+  const currentLang = i18n?.language || 'pt';
+
   const languages = [
-    { code: 'es', flag: '🇲🇽', name: 'Español' },
-    { code: 'en', flag: '🇺🇸', name: 'English' }
+    { code: 'pt', name: 'Português', flag: '🇧🇷' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' }
   ];
 
+  const currentLanguage = languages.find(lang => lang.code === currentLang) || languages[0];
+
+  // Cerrar al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <div className="language-switcher">
-      <select
-        className="language-select"
-        value={i18n.language || 'es'}
-        onChange={changeLanguage}
-        title={languages.find(l => l.code === (i18n.language || 'es'))?.name}
+    <div className="language-switcher" ref={dropdownRef}>
+      <button 
+        className="lang-selector-btn"
+        onClick={() => setIsOpen(!isOpen)}
       >
-        {languages.map((lang) => (
-          <option key={lang.code} value={lang.code}>
-            {lang.flag} {lang.name}
-          </option>
-        ))}
-      </select>
+        <span>{currentLanguage.flag}</span>
+        <span>{currentLanguage.name}</span>
+        <span className="dropdown-arrow">{isOpen ? '▲' : '▼'}</span>
+      </button>
+      
+      {isOpen && (
+        <div className="lang-dropdown">
+          {languages.map(lang => (
+            <button
+              key={lang.code}
+              onClick={() => changeLanguage(lang.code)}
+              className={`lang-option ${currentLang === lang.code ? 'active' : ''}`}
+            >
+              <span>{lang.flag}</span>
+              <span>{lang.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

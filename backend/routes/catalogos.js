@@ -98,4 +98,81 @@ router.get('/ciudades/estado/:estadoCodigo', async (req, res) => {
   }
 });
 
+// =====================================================
+// NUEVO ENDPOINT: GET /api/catalogos/categorias
+// =====================================================
+router.get('/categorias', async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, nome, slug, descricao 
+       FROM categorias 
+       WHERE ativo = true 
+       ORDER BY ordem`
+    );
+    
+    res.json({
+      categorias: result.rows
+    });
+  } catch (error) {
+    console.error('Error obteniendo categorías:', error);
+    
+    // Si la tabla no existe, crearla automáticamente
+    if (error.code === '42P01') {
+      console.log('📦 Tabla "categorias" no encontrada. Creándola...');
+      
+      try {
+        await query(`
+          CREATE TABLE IF NOT EXISTS categorias (
+              id SERIAL PRIMARY KEY,
+              nome VARCHAR(100) NOT NULL,
+              slug VARCHAR(100) UNIQUE NOT NULL,
+              descricao TEXT,
+              ativo BOOLEAN DEFAULT true,
+              ordem INTEGER DEFAULT 0,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        
+        await query(`
+          INSERT INTO categorias (nome, slug, descricao, ordem) VALUES
+          ('Infantil', 'infantil', 'Rifas com prêmios para crianças', 1),
+          ('Automóveis', 'automoveis', 'Carros, motos e veículos', 2),
+          ('Imóveis', 'imoveis', 'Casas, apartamentos, terrenos', 3),
+          ('Eletrodomésticos', 'eletrodomesticos', 'Geladeiras, TVs, máquinas de lavar', 4),
+          ('Eletrônicos', 'eletronicos', 'Celulares, notebooks, tablets', 5),
+          ('Viagens', 'viagens', 'Pacotes de viagem, passagens', 6),
+          ('Experiências', 'experiencias', 'Jantares, eventos, cursos', 7),
+          ('Outros', 'outros', 'Outros tipos de prêmios', 8)
+          ON CONFLICT (slug) DO NOTHING;
+        `);
+        
+        // Reintentar consulta después de crear la tabla
+        const resultRetry = await query(
+          `SELECT id, nome, slug, descricao 
+           FROM categorias 
+           WHERE ativo = true 
+           ORDER BY ordem`
+        );
+        
+        console.log('✅ Tabla "categorias" creada exitosamente');
+        
+        return res.json({
+          categorias: resultRetry.rows
+        });
+      } catch (createError) {
+        console.error('Error creando tabla categorias:', createError);
+        return res.status(500).json({
+          error: 'Error al crear tabla de categorías',
+          code: 'INTERNAL_ERROR'
+        });
+      }
+    }
+    
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
 module.exports = router;

@@ -2,94 +2,98 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import TermsAndConditions from './TermsAndConditions';
 import { catalogosService, uploadService } from '../services/api';
-import { showError } from '../utils/swal';
+import { showError, showSuccess } from '../utils/swal';
+import { API_BASE } from '../config/api';
 
-// Mapa completo de colores en español
+// Mapa completo de colores en español (mantener igual)
 const coloresMap = {
-  // Colores básicos
   'rojo': '#FF0000', 'azul': '#0000FF', 'verde': '#00FF00', 'amarillo': '#FFFF00',
   'morado': '#800080', 'naranja': '#FFA500', 'negro': '#000000', 'blanco': '#FFFFFF',
   'marrón': '#8B4513', 'rosa': '#FFC0CB', 'gris': '#808080',
-  
-  // Variaciones de rojo
-  'rojo oscuro': '#8B0000', 'rojo claro': '#FFB6C1', 'rojo carmesí': '#DC143C',
-  'rojo escarlata': '#FF2400', 'rojo bermellón': '#E34234', 'rojo granate': '#800020',
-  'rojo cereza': '#DE3163', 'rojo coral': '#FF7F50', 'rojo salmón': '#FA8072',
-  
-  // Variaciones de azul
-  'azul oscuro': '#000080', 'azul claro': '#87CEEB', 'azul marino': '#000080',
-  'azul cielo': '#87CEEB', 'azul turquesa': '#40E0D0', 'azul cian': '#00FFFF',
-  'azul índigo': '#4B0082', 'azul real': '#4169E1', 'azul acero': '#4682B4',
-  'azul pizarra': '#708090', 'azul medianoche': '#191970', 'azul dodger': '#1E90FF',
-  
-  // Variaciones de verde
-  'verde oscuro': '#006400', 'verde claro': '#90EE90', 'verde lima': '#32CD32',
-  'verde esmeralda': '#50C878', 'verde oliva': '#808000', 'verde menta': '#98FB98',
-  'verde bosque': '#228B22', 'verde mar': '#2E8B57', 'verde primavera': '#00FF7F',
-  'verde chartreuse': '#7FFF00', 'verde jade': '#00A86B', 'verde musgo': '#8A9A5B',
-  
-  // Variaciones de amarillo
+  'rojo oscuro': '#8B0000', 'rojo claro': '#FFB6C1', 'azul oscuro': '#000080',
+  'azul claro': '#87CEEB', 'verde oscuro': '#006400', 'verde claro': '#90EE90',
   'amarillo oscuro': '#B8860B', 'amarillo claro': '#FFFFE0', 'amarillo dorado': '#FFD700',
-  'amarillo canario': '#FFFF99', 'amarillo mostaza': '#FFDB58', 'amarillo limón': '#FFF700',
-  'amarillo ámbar': '#FFBF00', 'amarillo crema': '#FFFDD0', 'amarillo maíz': '#FBEC5D',
-  
-  // Variaciones de morado/púrpura
   'morado oscuro': '#4B0082', 'morado claro': '#DDA0DD', 'púrpura': '#6A0DAD',
   'violeta': '#8A2BE2', 'lavanda': '#E6E6FA', 'magenta': '#FF00FF',
-  'fucsia': '#FF1493', 'lila': '#C8A2C8', 'púrpura real': '#663399',
-  
-  // Variaciones de naranja
-  'naranja oscuro': '#FF8C00', 'naranja claro': '#FFB347', 'naranja coral': '#FF7F50',
-  'naranja melocotón': '#FFDAB9', 'naranja salmón': '#FA8072', 'naranja mandarina': '#F28500',
-  'naranja persa': '#D99058', 'naranja quemado': '#CC5500',
-  
-  // Variaciones de marrón/café
-  'marrón oscuro': '#654321', 'marrón claro': '#D2B48C', 'café': '#A0522D',
-  'café claro': '#D2691E', 'café oscuro': '#8B4513', 'chocolate': '#7B3F00',
-  'chocolate claro': '#D2691E', 'chocolate oscuro': '#3C2414', 'caramelo': '#D2691E',
-  'bronce': '#CD7F32', 'cobre': '#B87333', 'caoba': '#C04000',
-  
-  // Variaciones de rosa
-  'rosa oscuro': '#C71585', 'rosa claro': '#FFB6C1', 'rosa fucsia': '#FF1493',
-  'rosa coral': '#FF7F50', 'rosa salmón': '#FA8072', 'rosa melocotón': '#FFDAB9',
-  'rosa polvo': '#FFB6C1', 'rosa caliente': '#FF69B4', 'rosa profundo': '#FF1493',
-  
-  // Variaciones de gris
-  'gris oscuro': '#696969', 'gris claro': '#D3D3D3', 'gris plata': '#C0C0C0',
-  'gris carbón': '#36454F', 'gris pizarra': '#708090', 'gris acero': '#71797E',
-  'gris perla': '#E2E2E2', 'gris humo': '#848884', 'gris hierro': '#4B4B4B',
-  
-  // Colores especiales
-  'oro': '#FFD700', 'plata': '#C0C0C0',
-  'turquesa': '#40E0D0', 'esmeralda': '#50C878', 'rubí': '#E0115F',
-  'zafiro': '#0F52BA', 'ámbar': '#FFBF00', 'perla': '#F8F6F0',
-  'marfil': '#FFFFF0', 'crema': '#FFFDD0', 'beige': '#F5F5DC',
-  'coral': '#FF7F50', 'salmón': '#FA8072', 'melocotón': '#FFDAB9',
-  'menta': '#98FB98', 'lima': '#32CD32', 'cian': '#00FFFF'
+  'oro': '#FFD700', 'plata': '#C0C0C0', 'turquesa': '#40E0D0', 'esmeralda': '#50C878',
+  'coral': '#FF7F50', 'salmón': '#FA8072', 'melocotón': '#FFDAB9', 'menta': '#98FB98'
 };
 
-// Función para obtener el color hexadecimal por nombre
 const obtenerColorPorNombre = (nombreColor) => {
-  if (!nombreColor) return '#E5E7EB'; // Gris por defecto
-  
+  if (!nombreColor) return '#E5E7EB';
   const colorNormalizado = nombreColor.toLowerCase().trim();
   return coloresMap[colorNormalizado] || '#E5E7EB';
 };
 
-// Función para obtener colores disponibles (no usados)
 const obtenerColoresDisponibles = (coloresEnUso) => {
   if (!coloresEnUso || coloresEnUso.length === 0) {
     return Object.keys(coloresMap);
   }
-  
-  const coloresUsados = coloresEnUso.map(color => {
-    if (typeof color === 'string') {
-      return color.toLowerCase().trim();
-    }
-    return '';
-  }).filter(color => color !== '');
-  
+  const coloresUsados = coloresEnUso.map(color => color.toLowerCase().trim()).filter(color => color !== '');
   return Object.keys(coloresMap).filter(color => !coloresUsados.includes(color.toLowerCase()));
+};
+
+const generarElementosRifa = (tipo, cantidad) => {
+  switch (tipo) {
+    case 'numeros':
+      return Array.from({ length: cantidad }, (_, i) => i + 1);
+    case 'baraja':
+      const palos = ['♠', '♥', '♦', '♣'];
+      const valores = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+      const cartas = [];
+      palos.forEach(palo => {
+        valores.forEach(valor => {
+          cartas.push(`${valor}${palo}`);
+        });
+      });
+      cartas.push('🃏', '🂠');
+      return cartas.slice(0, cantidad);
+    case 'abecedario':
+      return Array.from({ length: Math.min(cantidad, 26) }, (_, i) => String.fromCharCode(65 + i));
+    case 'animales':
+      const animales = ['🐭 Rata', '🐮 Buey', '🐯 Tigre', '🐰 Conejo', '🐲 Dragón', '🐍 Serpiente', 
+                       '🐴 Caballo', '🐐 Cabra', '🐵 Mono', '🐔 Gallo', '🐶 Perro', '🐷 Cerdo'];
+      return animales.slice(0, Math.min(cantidad, 12));
+    case 'colores':
+      const coloresBasicos = ['Rojo', 'Azul', 'Verde', 'Amarillo', 'Morado', 'Naranja', 'Negro', 'Blanco', 'Marrón', 'Rosa'];
+      return coloresBasicos.slice(0, Math.min(cantidad, coloresBasicos.length));
+    case 'equipos':
+      const equipos = ['🇲🇽 América', '🇲🇽 Chivas', '🇲🇽 Cruz Azul', '🇲🇽 Pumas', '🇲🇽 Tigres', 
+                      '🇲🇽 Monterrey', '🇲🇽 Santos', '🇲🇽 Pachuca', '🇲🇽 Toluca', '🇲🇽 Atlas',
+                      '🇪🇸 Real Madrid', '🇪🇸 Barcelona', '🇪🇸 Atlético', '🇮🇹 Juventus', '🇮🇹 Milan',
+                      '🇩🇪 Bayern', '🇬🇧 Manchester United', '🇬🇧 Liverpool', '🇫🇷 PSG', '🇧🇷 Flamengo'];
+      return equipos.slice(0, Math.min(cantidad, 20));
+    case 'emojis':
+      const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '💽', '💾', '💿', '📀', '🧮', '🎥', '📷', '📸', '📹', '🎬', '📺', '📻', '🎙️', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️'];
+      return emojis.slice(0, Math.min(cantidad, 100));
+    case 'paises':
+      const paises = ['🇺🇸 Estados Unidos', '🇨🇦 Canadá', '🇲🇽 México', '🇧🇷 Brasil', '🇦🇷 Argentina', '🇨🇱 Chile', '🇵🇪 Perú', '🇨🇴 Colombia', '🇻🇪 Venezuela', '🇪🇨 Ecuador', '🇧🇴 Bolivia', '🇵🇾 Paraguay', '🇺🇾 Uruguay', '🇪🇸 España', '🇫🇷 Francia', '🇩🇪 Alemania', '🇮🇹 Italia', '🇬🇧 Reino Unido', '🇳🇱 Países Bajos', '🇧🇪 Bélgica', '🇨🇭 Suiza', '🇦🇹 Austria', '🇵🇱 Polonia', '🇷🇺 Rusia', '🇺🇦 Ucrania', '🇸🇪 Suecia', '🇳🇴 Noruega', '🇩🇰 Dinamarca', '🇫🇮 Finlandia', '🇮🇸 Islandia', '🇮🇪 Irlanda', '🇵🇹 Portugal', '🇬🇷 Grecia', '🇨🇳 China', '🇯🇵 Japón', '🇰🇷 Corea del Sur', '🇮🇳 India', '🇹🇭 Tailandia', '🇻🇳 Vietnam', '🇵🇭 Filipinas', '🇮🇩 Indonesia', '🇲🇾 Malasia', '🇸🇬 Singapur', '🇪🇬 Egipto', '🇿🇦 Sudáfrica', '🇳🇬 Nigeria', '🇦🇺 Australia', '🇳🇿 Nueva Zelanda'];
+      return paises.slice(0, Math.min(cantidad, 100));
+    default:
+      return Array.from({ length: cantidad }, (_, i) => i + 1);
+  }
+};
+
+// Función para subir una imagen al servidor
+const subirImagenAlServidor = async (file) => {
+  const formData = new FormData();
+  formData.append('imagen', file);
+  
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/rifas/upload-imagen`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
+  
+  if (!response.ok) {
+    throw new Error('Error al subir la imagen');
+  }
+  
+  const data = await response.json();
+  return data.url;
 };
 
 const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTipo, agregarRifa, agregarPremio, actualizarPremio, eliminarPremio, manejarFotosPremios, eliminarFoto, actualizarFormaPago }) => {
@@ -100,16 +104,19 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
   const [mostrarMensajeExito, setMostrarMensajeExito] = useState(false);
   const [rifaCreada, setRifaCreada] = useState(null);
   const [mostrarSugerenciasColores, setMostrarSugerenciasColores] = useState(false);
+  const [subiendoFotos, setSubiendoFotos] = useState(false);
   
-  // Estados para catálogos de ubicación
+  // Estados para catálogos
   const [paises, setPaises] = useState([]);
   const [estados, setEstados] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [, setCargandoPaises] = useState(false);
   const [cargandoEstados, setCargandoEstados] = useState(false);
+  const [cargandoCategorias, setCargandoCategorias] = useState(true);
   
   const totalPasos = 4;
 
-  // Cargar países al montar el componente
+  // Cargar países
   useEffect(() => {
     const cargarPaises = async () => {
       try {
@@ -125,7 +132,22 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
     cargarPaises();
   }, []);
 
-  // Cargar estados cuando cambie el país seleccionado
+  // Cargar categorías
+  useEffect(() => {
+    const cargarCategorias = async () => {
+      try {
+        setCargandoCategorias(true);
+        const response = await catalogosService.getCategorias();
+        setCategorias(response.categorias || []);
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
+      } finally {
+        setCargandoCategorias(false);
+      }
+    };
+    cargarCategorias();
+  }, []);
+  
   useEffect(() => {
     const cargarEstados = async () => {
       if (nuevaRifa.pais) {
@@ -146,10 +168,8 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
     cargarEstados();
   }, [nuevaRifa.pais]);
 
-  // Asegurar que siempre haya al menos un premio cuando se entra al paso 3
   useEffect(() => {
     if (pasoActual === 3 && (!nuevaRifa.premios || nuevaRifa.premios.length === 0)) {
-      // Crear el primer premio automáticamente
       const primerPremio = {
         id: Date.now(),
         nombre: '',
@@ -162,8 +182,7 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
         premios: [primerPremio]
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pasoActual]);
+  }, [pasoActual, nuevaRifa, setNuevaRifa]);
 
   const siguientePaso = () => {
     if (pasoActual < totalPasos) {
@@ -182,13 +201,95 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
       case 1:
         return nuevaRifa.nombre && nuevaRifa.precio;
       case 2:
-        return true; // Los elementos son opcionales
+        return nuevaRifa.categoria && nuevaRifa.cantidadNumeros;
       case 3:
-        return true; // Los premios son opcionales
+        return nuevaRifa.premios?.[0]?.nombre;
       case 4:
-        return terminosAceptados; // Debe aceptar términos para finalizar
+        return terminosAceptados && nuevaRifa.pixKey;
       default:
         return false;
+    }
+  };
+
+  // 🔧 FUNCIÓN CORREGIDA: Manejar selección de fotos y subirlas al servidor
+  const manejarSeleccionFotos = async (e) => {
+    const archivos = Array.from(e.target.files);
+    if (archivos.length === 0) return;
+    
+    setSubiendoFotos(true);
+   // showSuccess('Subiendo', `Subiendo ${archivos.length} foto(s)...`);
+    
+    try {
+      const urlsSubidas = [];
+      
+      for (const archivo of archivos) {
+        try {
+          // Subir cada imagen al servidor
+          const url = await subirImagenAlServidor(archivo);
+          urlsSubidas.push({
+            id: Date.now() + Math.random(),
+            url: url,
+            url_foto: url,
+            descripcion: '',
+            orden: nuevaRifa.fotosPremios?.length || 0
+          });
+          console.log('✅ Imagen subida:', url);
+        } catch (err) {
+          console.error('Error subiendo imagen:', err);
+          showError('Error', `No se pudo subir la imagen: ${archivo.name}`);
+        }
+      }
+      
+      // Actualizar el estado con las nuevas fotos
+      const fotosActuales = nuevaRifa.fotosPremios || [];
+      setNuevaRifa({
+        ...nuevaRifa,
+        fotosPremios: [...fotosActuales, ...urlsSubidas]
+      });
+      
+     // showSuccess('Éxito', `${urlsSubidas.length} foto(s) subida(s) correctamente`);
+    } catch (error) {
+      console.error('Error procesando fotos:', error);
+      showError('Error', 'Error al procesar las fotos');
+    } finally {
+      setSubiendoFotos(false);
+      e.target.value = ''; // Limpiar el input
+    }
+  };
+
+  const manejarEliminarFoto = (fotoId) => {
+    const nuevasFotos = (nuevaRifa.fotosPremios || []).filter(f => f.id !== fotoId);
+    setNuevaRifa({...nuevaRifa, fotosPremios: nuevasFotos});
+  };
+
+  const manejarCrearRifa = async () => {
+    // Validar que haya fotos (opcional, pero mostrar advertencia)
+    if (!nuevaRifa.fotosPremios || nuevaRifa.fotosPremios.length === 0) {
+      const confirmar = window.confirm('¿No has agregado fotos del premio. ¿Deseas continuar?');
+      if (!confirmar) return;
+    }
+    
+    // Preparar los datos para enviar
+    const datosParaEnviar = {
+      ...nuevaRifa,
+      // Asegurar que las fotos tengan el formato correcto
+      fotosPremios: (nuevaRifa.fotosPremios || []).map(foto => ({
+        url: foto.url || foto.url_foto,
+        url_foto: foto.url || foto.url_foto,
+        descripcion: foto.descripcion || '',
+        orden: foto.orden || 0
+      }))
+    };
+    
+    console.log('📸 Enviando fotos:', datosParaEnviar.fotosPremios);
+    
+    const rifaId = await agregarRifa(datosParaEnviar);
+    if (rifaId) {
+      setRifaCreada(rifaId);
+      setMostrarMensajeExito(true);
+      setTimeout(() => {
+        window.location.href = '/rifas';
+      }, 3000);
     }
   };
 
@@ -201,19 +302,6 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
     setMostrarTerminos(false);
   };
 
-  const manejarCrearRifa = async () => {
-    const rifaId = await agregarRifa();
-    if (rifaId) {
-      setRifaCreada(rifaId);
-      setMostrarMensajeExito(true);
-      
-      // Auto-redirigir después de 3 segundos
-      setTimeout(() => {
-        window.location.href = `/gestionar/${rifaId}`;
-      }, 3000);
-    }
-  };
-
   const renderPaso = () => {
     switch (pasoActual) {
       case 1:
@@ -222,61 +310,52 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
             <div className="step-header-modern">
               <div className="step-icon-modern">📝</div>
               <div>
-                <h2 className="step-title-modern">{t('wizard.step1.label')}</h2>
-                <p className="step-description">{t('wizard.step1.stepDescription')}</p>
+                <h2 className="step-title-modern">Informações Básicas</h2>
+                <p className="step-description">Defina os dados principais da sua rifa</p>
               </div>
             </div>
             <div className="form-section-modern">
               <div className="form-group-modern">
-                <label htmlFor="nombre-rifa">
-                  <span className="label-text">{t('wizard.step1.raffleName')} *</span>
-                  <span className="label-required">{t('wizard.required')}</span>
+                <label>
+                  <span className="label-text">Nome da Rifa *</span>
                 </label>
                 <input
-                  id="nombre-rifa"
                   type="text"
-                  placeholder={t('wizard.step1.raffleNamePlaceholder')}
+                  placeholder="Ex: iPhone 15 Pro Max"
                   value={nuevaRifa.nombre}
                   onChange={(e) => setNuevaRifa({...nuevaRifa, nombre: e.target.value})}
                   className="input-modern"
                 />
-                <small className="input-help">{t('wizard.step1.raffleNameHelp')}</small>
               </div>
               
               <div className="form-group-modern">
-                <label htmlFor="descripcion-rifa">
-                  <span className="label-text">{t('wizard.step1.description')}</span>
-                  <span className="label-optional">{t('wizard.optional')}</span>
-                </label>
+                <label>Descrição</label>
                 <textarea
-                  id="descripcion-rifa"
-                  placeholder={t('wizard.step1.descriptionPlaceholder')}
+                  placeholder="Descreva os prêmios, como funcionará o sorteio..."
                   value={nuevaRifa.descripcion}
                   onChange={(e) => setNuevaRifa({...nuevaRifa, descripcion: e.target.value})}
                   className="textarea-modern"
                   rows="4"
                 />
-                <small className="input-help">{t('wizard.step1.descriptionHelp')}</small>
               </div>
             </div>
+
             <div className="form-section-modern">
               <div className="form-group-modern">
-                <label htmlFor="tipo-rifa">
-                  <span className="label-text">{t('wizard.step1.raffleType')} *</span>
-                </label>
+                <label>Tipo de Rifa *</label>
                 <select
-                  id="tipo-rifa"
                   value={nuevaRifa.tipo}
                   onChange={(e) => manejarCambioTipo(e.target.value)}
                   className="select-modern"
                 >
-                  <option value="numeros">{t('wizard.step1.types.numbers')}</option>
-                  <option value="baraja">{t('wizard.step1.types.deck')}</option>
-                  <option value="abecedario">{t('wizard.step1.types.alphabet')}</option>
-                  <option value="animales">{t('wizard.step1.types.animals')}</option>
-                  <option value="colores">{t('wizard.step1.types.colors')}</option>
-                  <option value="equipos">{t('wizard.step1.types.teams')}</option>
-                  <option value="emojis">{t('wizard.step1.types.emojis')}</option>
+                  <option value="numeros">Números</option>
+                  <option value="baraja">Baraja</option>
+                  <option value="abecedario">Abecedario</option>
+                  <option value="animales">Animales</option>
+                  <option value="colores">Colores</option>
+                  <option value="equipos">Equipos</option>
+                  <option value="emojis">Emojis</option>
+                  <option value="paises">Países</option>
                 </select>
                 <div className="tipo-info-card">
                   <span className="info-icon">ℹ️</span>
@@ -285,74 +364,35 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
               </div>
               
               <div className="form-group-modern">
-                <label htmlFor="precio-rifa">
-                  <span className="label-text">{t('wizard.step1.pricePerElement', { element: tiposRifas[nuevaRifa.tipo]?.elementos || 'elemento' })} *</span>
-                </label>
-                <div className="input-with-currency">
-                  <span className="currency-symbol">$</span>
-                  <input
-                    id="precio-rifa"
-                    type="number"
-                    placeholder={t('wizard.step1.pricePlaceholder')}
-                    value={nuevaRifa.precio}
-                    onChange={(e) => setNuevaRifa({...nuevaRifa, precio: e.target.value})}
-                    className="input-modern"
-                    min="0"
-                    step="0.01"
-                  />
-                  <span className="currency-code">MXN</span>
-                </div>
-                <small className="input-help">{t('wizard.step1.priceHelp', { element: tiposRifas[nuevaRifa.tipo]?.elementos || 'elemento' })}</small>
+                <label>Preço por número (R$) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="10.00"
+                  value={nuevaRifa.precio}
+                  onChange={(e) => setNuevaRifa({...nuevaRifa, precio: e.target.value})}
+                  className="input-modern"
+                />
               </div>
             </div>
+
             <div className="form-section-modern">
               <div className="form-group-modern">
-                <label htmlFor="categoria-rifa">
-                  <span className="label-text">{t('wizard.step1.category')}</span>
-                  <span className="label-optional">{t('wizard.optional')}</span>
-                </label>
-                <select
-                  id="categoria-rifa"
-                  value={nuevaRifa.categoria || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, categoria: e.target.value})}
-                  className="select-modern"
-                >
-                  <option value="">{t('wizard.step1.categoryPlaceholder')}</option>
-                  <option value="propiedades">{t('wizard.step1.categories.properties')}</option>
-                  <option value="vehiculos">{t('wizard.step1.categories.vehicles')}</option>
-                  <option value="tecnologia">{t('wizard.step1.categories.technology')}</option>
-                  <option value="experiencias">{t('wizard.step1.categories.experiences')}</option>
-                  <option value="deportes">{t('wizard.step1.categories.sports')}</option>
-                  <option value="joyeria">{t('wizard.step1.categories.jewellery')}</option>
-                  <option value="viajes">{t('wizard.step1.categories.travel')}</option>
-                  <option value="moda">{t('wizard.step1.categories.fashion')}</option>
-                  <option value="alimentos">{t('wizard.step1.categories.food')}</option>
-                  <option value="salud">{t('wizard.step1.categories.health')}</option>
-                  <option value="ninos">{t('wizard.step1.categories.kids')}</option>
-                  <option value="efectivo">{t('wizard.step1.categories.cash')}</option>
-                  <option value="otros">{t('wizard.step1.categories.other')}</option>
-                </select>
-                <small className="input-help">{t('wizard.step1.categoryHelp')}</small>
-              </div>
-              
-              <div className="form-group-modern">
-                <label htmlFor="visibilidad-rifa">
-                  <span className="label-text">{t('wizard.step1.visibility')} *</span>
-                </label>
+                <label>Visibilidade</label>
                 <div className="visibility-options-modern">
                   <label className={`radio-option-modern ${!nuevaRifa.esPrivada ? 'active' : ''}`}>
                     <input
                       type="radio"
                       name="visibilidad"
-                      value="publica"
                       checked={!nuevaRifa.esPrivada}
                       onChange={() => setNuevaRifa({...nuevaRifa, esPrivada: false})}
                     />
                     <span className="radio-content">
                       <span className="radio-icon">🌍</span>
                       <div>
-                        <strong>{t('wizard.step1.public')}</strong>
-                        <small>{t('wizard.step1.publicDesc')}</small>
+                        <strong>Pública</strong>
+                        <small>Visível para todos os participantes</small>
                       </div>
                     </span>
                   </label>
@@ -360,15 +400,14 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
                     <input
                       type="radio"
                       name="visibilidad"
-                      value="privada"
                       checked={nuevaRifa.esPrivada}
                       onChange={() => setNuevaRifa({...nuevaRifa, esPrivada: true})}
                     />
                     <span className="radio-content">
                       <span className="radio-icon">🔒</span>
                       <div>
-                        <strong>{t('wizard.step1.private')}</strong>
-                        <small>{t('wizard.step1.privateDesc')}</small>
+                        <strong>Privada</strong>
+                        <small>Apenas com link direto</small>
                       </div>
                     </span>
                   </label>
@@ -376,140 +415,13 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
               </div>
               
               <div className="form-group-modern">
-                <label htmlFor="fecha-fin">
-                  <span className="label-text">{t('wizard.step1.endDate')}</span>
-                  <span className="label-optional">{t('wizard.optional')}</span>
-                </label>
+                <label>Data de encerramento</label>
                 <input
-                  id="fecha-fin"
                   type="date"
                   value={nuevaRifa.fechaFin}
                   onChange={(e) => setNuevaRifa({...nuevaRifa, fechaFin: e.target.value})}
                   className="input-modern"
                 />
-                <small className="input-help">{t('wizard.step1.endDateHelp')}</small>
-              </div>
-            </div>
-            
-            {/* Campos de Ubicación */}
-            <div className="form-section-modern location-section">
-              <div className="section-header-modern">
-                <span className="section-icon">📍</span>
-                <div>
-                  <h3 className="section-title">{t('wizard.step1.location')}</h3>
-                  <p className="section-description">{t('wizard.step1.locationDesc')}</p>
-                </div>
-              </div>
-            
-              <div className="form-group-modern">
-                <label htmlFor="pais-rifa">
-                  <span className="label-text">{t('wizard.step1.country')}</span>
-                  <span className="label-optional">{t('wizard.optional')}</span>
-                </label>
-                <select
-                  id="pais-rifa"
-                  value={nuevaRifa.pais || ''}
-                  onChange={(e) => {
-                    const paisSeleccionado = e.target.value;
-                    setNuevaRifa({
-                      ...nuevaRifa, 
-                      pais: paisSeleccionado,
-                      estado: '',
-                      alcance: paisSeleccionado ? 'nacional' : 'local'
-                    });
-                  }}
-                  className="select-modern"
-                >
-                  <option value="">{t('wizard.step1.selectCountry')}</option>
-                  {paises.map(pais => (
-                    <option key={pais.id} value={pais.codigo}>
-                      {pais.nombre_es || pais.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {nuevaRifa.pais && (
-                <div className="form-group-modern">
-                  <label htmlFor="estado-rifa">
-                    <span className="label-text">{t('wizard.step1.state')}</span>
-                    <span className="label-optional">{t('wizard.optional')}</span>
-                  </label>
-                  <select
-                    id="estado-rifa"
-                    value={nuevaRifa.estado || ''}
-                    onChange={(e) => setNuevaRifa({...nuevaRifa, estado: e.target.value})}
-                    disabled={cargandoEstados}
-                    className="select-modern"
-                  >
-                    <option value="">{t('wizard.step1.selectState')}</option>
-                    {estados.map(estado => (
-                      <option key={estado.id} value={estado.codigo}>
-                        {estado.nombre_es || estado.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {cargandoEstados && <small className="input-help">{t('wizard.step1.loadingStates')}</small>}
-                </div>
-              )}
-
-              <div className="form-group-modern">
-                <label htmlFor="ciudad-rifa">
-                  <span className="label-text">{t('wizard.step1.city')}</span>
-                  <span className="label-optional">{t('wizard.optional')}</span>
-                </label>
-                <input
-                  id="ciudad-rifa"
-                  type="text"
-                  placeholder={t('wizard.step1.cityPlaceholder')}
-                  value={nuevaRifa.ciudad || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, ciudad: e.target.value})}
-                  className="input-modern"
-                />
-              </div>
-
-              <div className="form-group-modern">
-                <label htmlFor="alcance-rifa">
-                  <span className="label-text">{t('wizard.step1.scope')}</span>
-                </label>
-                <select
-                  id="alcance-rifa"
-                  value={nuevaRifa.alcance || 'local'}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, alcance: e.target.value})}
-                  className="select-modern"
-                >
-                  <option value="local">{t('wizard.step1.scopeLocal')}</option>
-                  <option value="nacional">{t('wizard.step1.scopeNational')}</option>
-                  <option value="internacional">{t('wizard.step1.scopeInternational')}</option>
-                </select>
-                <div className="tipo-info-card">
-                  <span className="info-icon">ℹ️</span>
-                  <span className="info-text">
-                    {nuevaRifa.alcance === 'local' && t('wizard.step1.scopeLocalHelp')}
-                    {nuevaRifa.alcance === 'nacional' && t('wizard.step1.scopeNationalHelp')}
-                    {nuevaRifa.alcance === 'internacional' && t('wizard.step1.scopeInternationalHelp')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="form-group-modern">
-                <label className={`checkbox-modern ${nuevaRifa.manejaEnvio ? 'checked' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={nuevaRifa.manejaEnvio || false}
-                    onChange={(e) => setNuevaRifa({...nuevaRifa, manejaEnvio: e.target.checked})}
-                  />
-                  <span className="checkbox-content-modern">
-                    <span className="checkbox-icon">📦</span>
-                    <div>
-                      <strong>{t('wizard.step1.handlesShipping')}</strong>
-                      <small>{t('wizard.step1.handlesShippingDesc')}</small>
-                    </div>
-                    {nuevaRifa.manejaEnvio && (
-                      <span className="checkbox-checkmark">✓</span>
-                    )}
-                  </span>
-                </label>
               </div>
             </div>
           </div>
@@ -519,192 +431,54 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
         return (
           <div className="paso-contenido-modern">
             <div className="step-header-modern">
-              <div className="step-icon-modern">🎯</div>
+              <div className="step-icon-modern">🏷️</div>
               <div>
-                <h2 className="step-title-modern">{t('wizard.step2.label')}</h2>
-                <p className="step-description">{t('wizard.step2.description')}</p>
+                <h2 className="step-title-modern">Categoria da Rifa</h2>
+                <p className="step-description">Selecione a categoria que melhor descreve sua rifa</p>
               </div>
             </div>
-            <div className="form-group">
-              <label>{t('wizard.step2.quantity', { elements: tiposRifas[nuevaRifa.tipo]?.elementos || 'elementos' })}:</label>
-              <input
-                type="number"
-                placeholder={t('wizard.step2.quantityPlaceholder', { default: tiposRifas[nuevaRifa.tipo]?.cantidadDefault || 100, description: tiposRifas[nuevaRifa.tipo]?.descripcion })}
-                value={nuevaRifa.cantidadNumeros}
-                onChange={(e) => setNuevaRifa({...nuevaRifa, cantidadNumeros: parseInt(e.target.value) || 1})}
-                min="1"
-                max={nuevaRifa.tipo === 'abecedario' ? 26 : nuevaRifa.tipo === 'animales' ? 12 : nuevaRifa.tipo === 'colores' ? 1000 : nuevaRifa.tipo === 'equipos' ? 20 : nuevaRifa.tipo === 'emojis' ? 100 : 1000}
-              />
-              <small className="form-help">
-                {nuevaRifa.tipo === 'baraja' 
-                  ? t('wizard.step2.help.deck')
-                  : nuevaRifa.tipo === 'abecedario'
-                  ? t('wizard.step2.help.alphabet')
-                  : nuevaRifa.tipo === 'animales'
-                  ? t('wizard.step2.help.animals')
-                  : nuevaRifa.tipo === 'colores'
-                  ? t('wizard.step2.help.colors')
-                  : nuevaRifa.tipo === 'equipos'
-                  ? t('wizard.step2.help.teams')
-                  : nuevaRifa.tipo === 'emojis'
-                  ? t('wizard.step2.help.emojis')
-                  : t('wizard.step2.help.default')
-                }
-              </small>
-            </div>
-            
-            {/* Sección de elementos personalizados */}
-            {nuevaRifa.tipo !== 'numeros' && (
-              <div className="elementos-personalizados">
-                <div className="elementos-header">
-                  <h4>🎯 Personalizar {tiposRifas[nuevaRifa.tipo]?.elementos || 'elementos'}</h4>
-                  <div className="elementos-actions">
-                    <button type="button" className="btn-secondary" onClick={() => {
-                      const elementosIniciales = generarElementosRifa(nuevaRifa.tipo, tiposRifas[nuevaRifa.tipo].cantidadDefault);
-                      setNuevaRifa({
-                        ...nuevaRifa,
-                        elementosPersonalizados: elementosIniciales,
-                        cantidadNumeros: elementosIniciales.length
-                      });
-                    }}>
-                      🔄 Resetear
-                    </button>
-                    <button type="button" className="btn-secondary" onClick={() => {
-                      let nuevoElemento;
-                      if (nuevaRifa.tipo === 'emojis') {
-                        const emojisDisponibles = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔'];
-                        nuevoElemento = emojisDisponibles[Math.floor(Math.random() * emojisDisponibles.length)];
-                      } else {
-                        nuevoElemento = `Nuevo ${tiposRifas[nuevaRifa.tipo]?.elementos || 'elemento'}`;
-                      }
-                      setNuevaRifa({
-                        ...nuevaRifa,
-                        elementosPersonalizados: [...nuevaRifa.elementosPersonalizados, nuevoElemento],
-                        cantidadNumeros: nuevaRifa.elementosPersonalizados.length + 1
-                      });
-                    }}>
-                      <span className="btn-icon">✨</span>
-                      <span>Agregar</span>
-                    </button>
-                    {nuevaRifa.tipo === 'colores' && (
-                      <button 
-                        type="button" 
-                        className="btn-secondary"
-                        onClick={() => setMostrarSugerenciasColores(!mostrarSugerenciasColores)}
-                      >
-                        <span className="btn-icon">🎨</span>
-                        <span>Colores Disponibles</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className={`elementos-grid ${nuevaRifa.tipo === 'emojis' ? 'emojis-grid' : ''} ${nuevaRifa.tipo === 'colores' ? 'colores-grid' : ''}`}>
-                  {nuevaRifa.elementosPersonalizados.map((elemento, index) => (
-                    <div key={index} className={`elemento-item ${nuevaRifa.tipo === 'emojis' ? 'emoji-item' : ''} ${nuevaRifa.tipo === 'colores' ? 'color-item' : ''}`}>
-                      {nuevaRifa.tipo === 'colores' ? (
-                        <>
-                          <div 
-                            className="color-preview" 
-                            style={{ backgroundColor: obtenerColorPorNombre(elemento) }}
-                          ></div>
-                          <input
-                            type="text"
-                            value={elemento}
-                            onChange={(e) => {
-                              const nuevosElementos = [...nuevaRifa.elementosPersonalizados];
-                              nuevosElementos[index] = e.target.value;
-                              setNuevaRifa({
-                                ...nuevaRifa,
-                                elementosPersonalizados: nuevosElementos
-                              });
-                            }}
-                            className="elemento-input color-input"
-                            style={{ 
-                              backgroundColor: obtenerColorPorNombre(elemento),
-                              color: obtenerColorPorNombre(elemento) === '#FFFFFF' || obtenerColorPorNombre(elemento) === '#FFFFF0' ? '#000000' : '#FFFFFF'
-                            }}
-                            placeholder={`Color ${index + 1}`}
-                            maxLength={50}
-                          />
-                        </>
-                      ) : (
-                        <input
-                          type="text"
-                          value={elemento}
-                          onChange={(e) => {
-                            const nuevosElementos = [...nuevaRifa.elementosPersonalizados];
-                            nuevosElementos[index] = e.target.value;
-                            setNuevaRifa({
-                              ...nuevaRifa,
-                              elementosPersonalizados: nuevosElementos
-                            });
-                          }}
-                          className="elemento-input"
-                          placeholder={nuevaRifa.tipo === 'emojis' ? '😀' : `${tiposRifas[nuevaRifa.tipo]?.elementos || 'elemento'} ${index + 1}`}
-                          maxLength={nuevaRifa.tipo === 'emojis' ? 2 : 50}
-                        />
-                      )}
-                      <button 
-                        type="button" 
-                        className="btn-eliminar-elemento"
-                        onClick={() => {
-                          const nuevosElementos = nuevaRifa.elementosPersonalizados.filter((_, i) => i !== index);
-                          setNuevaRifa({
-                            ...nuevaRifa,
-                            elementosPersonalizados: nuevosElementos,
-                            cantidadNumeros: nuevosElementos.length
-                          });
-                        }}
-                        title={t('wizard.step2.deleteElement')}
-                      >
-                        <span className="delete-icon">×</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <small className="elementos-help">
-                  {t('wizard.step2.editElements', { elements: tiposRifas[nuevaRifa.tipo]?.elementos || 'elementos' })}
-                </small>
-                
-                {nuevaRifa.tipo === 'colores' && mostrarSugerenciasColores && (
-                  <div className="sugerencias-colores">
-                    <h4>{t('wizard.step2.availableColors')}</h4>
-                    <div className="colores-sugerencias-grid">
-                      {(() => {
-                        const coloresDisponibles = obtenerColoresDisponibles(nuevaRifa.elementosPersonalizados);
-                        console.log('Colores en uso:', nuevaRifa.elementosPersonalizados);
-                        console.log('Colores disponibles:', coloresDisponibles);
-                        return coloresDisponibles.map((nombreColor, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          className="color-sugerencia"
-                          onClick={() => {
-                            if (nuevaRifa.elementosPersonalizados.length < nuevaRifa.cantidadNumeros) {
-                              setNuevaRifa({
-                                ...nuevaRifa,
-                                elementosPersonalizados: [...nuevaRifa.elementosPersonalizados, nombreColor]
-                              });
-                            }
-                          }}
-                          disabled={nuevaRifa.elementosPersonalizados.length >= nuevaRifa.cantidadNumeros}
-                        >
-                          <div 
-                            className="color-sugerencia-preview" 
-                            style={{ backgroundColor: obtenerColorPorNombre(nombreColor) }}
-                          ></div>
-                          <span className="color-sugerencia-nombre">{nombreColor}</span>
-                        </button>
-                        ));
-                      })()}
-                    </div>
-                    <small className="sugerencias-help">
-                      {t('wizard.step2.colorHelp')}
-                    </small>
-                  </div>
+
+            <div className="form-section-modern">
+              <div className="form-group-modern">
+                <label>Categoria da Rifa *</label>
+                {cargandoCategorias ? (
+                  <div className="loading-categorias">Carregando categorias...</div>
+                ) : (
+                  <select
+                    value={nuevaRifa.categoria || ''}
+                    onChange={(e) => setNuevaRifa({...nuevaRifa, categoria: e.target.value})}
+                    className="select-modern"
+                    required
+                  >
+                    <option value="">Selecione uma categoria</option>
+                    {categorias.map(cat => (
+                      <option key={cat.id} value={cat.slug}>
+                        {cat.nome}
+                      </option>
+                    ))}
+                  </select>
                 )}
+                <small className="input-help">
+                  Escolha a categoria que melhor representa o prêmio da sua rifa
+                </small>
               </div>
-            )}
+
+              <div className="form-group-modern">
+                <label>Quantidade de números *</label>
+                <input
+                  type="number"
+                  value={nuevaRifa.cantidadNumeros}
+                  onChange={(e) => setNuevaRifa({...nuevaRifa, cantidadNumeros: parseInt(e.target.value) || 1})}
+                  min="1"
+                  max="10000"
+                  className="input-modern"
+                  required
+                />
+                <small className="input-help">
+                  Defina quantos números estarão disponíveis para venda
+                </small>
+              </div>
+            </div>
           </div>
         );
 
@@ -714,272 +488,101 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
             <div className="step-header-modern">
               <div className="step-icon-modern">🏆</div>
               <div>
-                <h2 className="step-title-modern">{t('wizard.step3.label')}</h2>
-                <p className="step-description">{t('wizard.step3.description')}</p>
+                <h2 className="step-title-modern">Prêmio da Rifa</h2>
+                <p className="step-description">Configure o prêmio principal e seus detalhes</p>
               </div>
             </div>
-            <div className="premios-section">
-              <div className="premios-header">
-                <h4>{t('wizard.step3.prizes')}</h4>
-                <button type="button" className="btn-secondary" onClick={agregarPremio}>
-                  <span className="btn-icon">✨</span>
-                  <span>{t('wizard.step3.addPrize')}</span>
-                </button>
+          
+            <div className="form-section-modern">
+              <div className="form-group-modern">
+                <label>Nome do Prêmio *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: iPhone 15 Pro Max, Viagem para Fernando de Noronha"
+                  value={nuevaRifa.premios?.[0]?.nombre || ''}
+                  onChange={(e) => {
+                    const nuevosPremios = [...(nuevaRifa.premios || [])];
+                    if (nuevosPremios.length === 0) {
+                      nuevosPremios.push({ id: Date.now(), nombre: '', descripcion: '', posicion: 1, fotos: [] });
+                    }
+                    nuevosPremios[0].nombre = e.target.value;
+                    setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
+                  }}
+                  className="input-modern"
+                  required
+                />
               </div>
-              {nuevaRifa.premios && nuevaRifa.premios.length > 0 ? (
-                nuevaRifa.premios.map((premio, index) => {
-                  // Función para obtener el texto del lugar
-                  const obtenerTextoLugar = (pos) => {
-                    if (!pos || pos <= 0) return `${index + 1}° lugar`;
-                    const posNum = parseInt(pos);
-                    if (posNum === 1) return '1er lugar';
-                    if (posNum === 2) return '2do lugar';
-                    if (posNum === 3) return '3er lugar';
-                    return `${posNum}° lugar`;
-                  };
-
-                  const esPrimerPremio = index === 0;
-                  const puedeEliminar = !esPrimerPremio && nuevaRifa.premios.length > 1;
-
-                  return (
-                    <div key={premio.id || index} className="premio-item">
-                      <div className="premio-header">
-                        <div className="premio-orden-badge">
-                          {obtenerTextoLugar(premio.posicion || index + 1)}
-                          {esPrimerPremio && (
-                            <span className="premio-required-badge">Requerido</span>
-                          )}
-                        </div>
-                        {puedeEliminar ? (
-                          <button 
-                            type="button" 
-                            className="btn-eliminar-premio"
-                            onClick={() => eliminarPremio(index)}
-                            title="Eliminar premio"
-                          >
-                            <span className="delete-icon">🗑️</span>
-                          </button>
-                        ) : (
-                          <div className="premio-locked-info" title="El primer premio es obligatorio y no puede eliminarse">
-                            <span className="lock-icon">🔒</span>
-                          </div>
-                        )}
-                      </div>
-                  <div className="premio-info">
-                      <div className="form-group-modern">
-                        <label htmlFor={`premio-posicion-${index}`}>
-                          <span className="label-text">Posición del Premio</span>
-                        </label>
-                      <input
-                          id={`premio-posicion-${index}`}
-                          type="number"
-                          min="1"
-                          placeholder="Ej: 1 (1er lugar), 2 (2do lugar), etc."
-                          value={premio.posicion || index + 1}
-                          onChange={(e) => {
-                            const nuevaPosicion = parseInt(e.target.value) || index + 1;
-                            actualizarPremio(index, 'posicion', nuevaPosicion);
-                          }}
-                          className="input-modern"
-                          disabled={esPrimerPremio}
-                        />
-                        <small className="input-help">
-                          {esPrimerPremio 
-                            ? 'El primer premio siempre será el 1er lugar' 
-                            : 'Establece el orden del premio (1 = 1er lugar, 2 = 2do lugar, etc.)'}
-                        </small>
-                    </div>
-                      <div className="form-group-modern">
-                        <label htmlFor={`premio-nombre-${index}`}>
-                          <span className="label-text">Nombre del Premio {esPrimerPremio ? '*' : ''}</span>
-                          {esPrimerPremio && <span className="label-required">Requerido</span>}
-                        </label>
-                      <input
-                          id={`premio-nombre-${index}`}
-                        type="text"
-                          placeholder="Ej: PlayStation 5, iPhone 15, etc."
-                          value={premio.nombre || ''}
-                          onChange={(e) => actualizarPremio(index, 'nombre', e.target.value)}
-                          className="input-modern"
-                          required={esPrimerPremio}
-                        />
-                        {esPrimerPremio && (
-                          <small className="input-help">El primer premio es obligatorio para la rifa</small>
-                        )}
-                      </div>
-                      <div className="form-group-modern">
-                        <label htmlFor={`premio-descripcion-${index}`}>
-                          <span className="label-text">Descripción del Premio</span>
-                          <span className="label-optional">Opcional</span>
-                        </label>
-                        <textarea
-                          id={`premio-descripcion-${index}`}
-                          placeholder="Descripción adicional del premio (opcional)"
-                          value={premio.descripcion || ''}
-                        onChange={(e) => actualizarPremio(index, 'descripcion', e.target.value)}
-                          className="textarea-modern"
-                          rows="3"
-                      />
-                    </div>
-                  </div>
-
-                    {/* Sección de Fotos del Premio Individual */}
-                    <div className="premio-fotos-section">
-                      <div className="section-header-modern">
-                        <span className="section-icon">📸</span>
-                        <div>
-                          <h4 className="section-title">Fotos del Premio</h4>
-                          <p className="section-description">Agrega imágenes de este premio específico</p>
-                        </div>
-                      </div>
-                      
-                      <div className="premio-fotos-grid">
-                        {premio.fotos && premio.fotos.length > 0 ? (
-                          premio.fotos.map((foto, fotoIndex) => (
-                            <div key={fotoIndex} className="premio-foto-item-modern">
-                              <div className="premio-foto-preview">
-                                <img 
-                                  src={foto.url || foto.url_foto} 
-                                  alt={foto.descripcion || `Premio ${index + 1} - Foto ${fotoIndex + 1}`} 
-                                />
-                  <button 
-                    type="button" 
-                                  className="btn-eliminar-foto-premio"
-                                  onClick={() => {
-                                    const nuevosPremios = [...nuevaRifa.premios];
-                                    nuevosPremios[index].fotos = nuevosPremios[index].fotos.filter((_, i) => i !== fotoIndex);
-                                    setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
-                                  }}
-                                  title="Eliminar foto"
-                                >
-                                  <span className="delete-icon">×</span>
-                  </button>
-                                {foto.uploading && (
-                                  <div className="foto-uploading-overlay">
-                                    <div className="spinner-small"></div>
-                                    <span>Subiendo...</span>
+          
+              <div className="form-group-modern">
+                <label>Descrição do Prêmio</label>
+                <textarea
+                  placeholder="Descreva detalhadamente o prêmio..."
+                  value={nuevaRifa.premios?.[0]?.descripcion || ''}
+                  onChange={(e) => {
+                    const nuevosPremios = [...(nuevaRifa.premios || [])];
+                    if (nuevosPremios.length === 0) {
+                      nuevosPremios.push({ id: Date.now(), nombre: '', descripcion: '', posicion: 1, fotos: [] });
+                    }
+                    nuevosPremios[0].descripcion = e.target.value;
+                    setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
+                  }}
+                  className="textarea-modern"
+                  rows="4"
+                />
+              </div>
+          
+              {/* 🔧 Fotos do Prêmio - CORREGIDO */}
+              <div className="form-group-modern">
+                <label>Fotos do Prêmio</label>
+                <div className="fotos-upload-area">
+                  <label className="file-upload-btn-modern">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={manejarSeleccionFotos}
+                      disabled={subiendoFotos}
+                      style={{ display: 'none' }}
+                    />
+                    <span className="btn-secondary">
+                      {subiendoFotos ? '⏳ Subiendo...' : '📸 Adicionar Fotos'}
+                    </span>
+                  </label>
+                  <small className="input-help">Adicione até 5 fotos do prêmio (as imagens serão enviadas ao servidor)</small>
                 </div>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="no-fotos-premio-message">
-                            <p>No hay fotos agregadas para este premio</p>
-                          </div>
-                        )}
+                
+                {(nuevaRifa.fotosPremios && nuevaRifa.fotosPremios.length > 0) && (
+                  <div className="fotos-grid-modern">
+                    {nuevaRifa.fotosPremios.map((foto, idx) => (
+                      <div key={foto.id || idx} className="foto-item-modern">
+                        <img src={foto.url || foto.url_foto} alt={`Foto ${idx + 1}`} />
+                        <button
+                          type="button"
+                          className="btn-remover-foto"
+                          onClick={() => manejarEliminarFoto(foto.id)}
+                        >
+                          ✕
+                        </button>
                       </div>
-
-                      <div className="premio-foto-upload-controls">
-                        <label className="file-upload-label-modern">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files[0];
-                              if (file) {
-                                let localUrl = null;
-                                try {
-                                  // Crear preview local
-                                  localUrl = URL.createObjectURL(file);
-                                  const nuevaFoto = { 
-                                    url: localUrl, 
-                                    url_foto: localUrl, 
-                                    descripcion: '',
-                                    uploading: true 
-                                  };
-                                  
-                                  const nuevosPremios = [...nuevaRifa.premios];
-                                  nuevosPremios[index] = {
-                                    ...nuevosPremios[index],
-                                    fotos: [...(nuevosPremios[index].fotos || []), nuevaFoto]
-                                  };
-                                  setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
-                                  
-                                  // Subir imagen al servidor
-                                  const response = await uploadService.uploadImage(file);
-                                  
-                                  // Actualizar con URL final - crear copia del array de fotos
-                                  const fotosActualizadas = [...nuevosPremios[index].fotos];
-                                  fotosActualizadas[fotosActualizadas.length - 1] = {
-                                    ...nuevaFoto,
-                                    url: response.url,
-                                    url_foto: response.url,
-                                    uploading: false
-                                  };
-                                  nuevosPremios[index] = {
-                                    ...nuevosPremios[index],
-                                    fotos: fotosActualizadas
-                                  };
-                                  setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
-                                  
-                                  // Limpiar URL temporal
-                                  if (localUrl) {
-                                    URL.revokeObjectURL(localUrl);
-                                  }
-                                } catch (error) {
-                                  console.error('Error subiendo imagen:', error);
-                                  showError('Error al subir imagen', error.message);
-                                  
-                                  // Remover foto con error
-                                  if (localUrl) {
-                                    const nuevosPremios = [...nuevaRifa.premios];
-                                    nuevosPremios[index].fotos = nuevosPremios[index].fotos.filter(f => f.url !== localUrl);
-                                    setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
-                                    URL.revokeObjectURL(localUrl);
-                                  }
-                                }
-                              }
-                              e.target.value = '';
-                            }}
-                          />
-                          <span className="file-upload-btn-modern">
-                            <span className="btn-icon">📁</span>
-                            <span>Subir Imagen</span>
-                          </span>
-                        </label>
-                        <span className="upload-divider-modern">o</span>
-                        <input
-                          type="text"
-                          placeholder="URL de la imagen (ej: https://ejemplo.com/imagen.jpg)"
-                          className="input-modern"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && e.target.value.trim()) {
-                              const nuevosPremios = [...nuevaRifa.premios];
-                              if (!nuevosPremios[index].fotos) {
-                                nuevosPremios[index].fotos = [];
-                              }
-                              nuevosPremios[index].fotos = [...nuevosPremios[index].fotos, {
-                                url: e.target.value.trim(),
-                                url_foto: e.target.value.trim(),
-                                descripcion: ''
-                              }];
-                              setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
-                              e.target.value = '';
-                            }
-                          }}
-                        />
-                        <small className="input-help">Presiona Enter para agregar la URL</small>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                  );
-                })
-              ) : (
-                <div className="no-premios-message">
-                  <p>{t('wizard.step3.noPrizes')}</p>
-                </div>
-              )}
-            </div>
-            
-            <div className="form-group">
-              <label>{t('wizard.step3.rules')}</label>
-              <textarea
-                placeholder={t('wizard.step3.rulesPlaceholder')}
-                value={nuevaRifa.reglas}
-                onChange={(e) => setNuevaRifa({...nuevaRifa, reglas: e.target.value})}
-                rows="4"
-              />
+                )}
+              </div>
+          
+              {/* Link do Vídeo */}
+              <div className="form-group-modern">
+                <label>Link do Vídeo (Opcional)</label>
+                <input
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={nuevaRifa.videoUrl || ''}
+                  onChange={(e) => setNuevaRifa({...nuevaRifa, videoUrl: e.target.value})}
+                  className="input-modern"
+                />
+                <small className="input-help">
+                  Adicione um vídeo do YouTube mostrando o prêmio
+                </small>
+              </div>
             </div>
           </div>
         );
@@ -990,195 +593,101 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
             <div className="step-header-modern">
               <div className="step-icon-modern">🎲</div>
               <div>
-                <h2 className="step-title-modern">{t('wizard.step4.label')}</h2>
-                <p className="step-description">{t('wizard.step4.description')}</p>
+                <h2 className="step-title-modern">Sorteio e Pagamento</h2>
+                <p className="step-description">Configure como será o sorteio e os métodos de pagamento</p>
               </div>
             </div>
-            
-            {/* Especificaciones del Sorteo en Vivo */}
-            <div className="sorteo-vivo-section">
-              <h4>{t('wizard.step4.liveDraw')}</h4>
-              <p className="form-help">
-                <strong>{t('wizard.step4.liveDrawRequired')}</strong>
-              </p>
+          
+            {/* Sorteio */}
+            <div className="form-section-modern">
+              <h3 className="section-subtitle">Dados do Sorteio</h3>
               
-              <div className="form-group">
-                <label>{t('wizard.step4.drawDate')}</label>
+              <div className="form-group-modern">
+                <label>Data do Sorteio *</label>
                 <input
                   type="datetime-local"
                   value={nuevaRifa.fechaSorteo || ''}
                   onChange={(e) => setNuevaRifa({...nuevaRifa, fechaSorteo: e.target.value})}
+                  className="input-modern"
                   required
                 />
               </div>
-
-              <div className="form-group">
-                <label>{t('wizard.step4.platform')}</label>
+          
+              <div className="form-group-modern">
+                <label>Tipo de Sorteio *</label>
                 <select
-                  value={nuevaRifa.plataformaTransmision || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, plataformaTransmision: e.target.value})}
+                  value={nuevaRifa.loteriaTipo || ''}
+                  onChange={(e) => setNuevaRifa({...nuevaRifa, loteriaTipo: e.target.value})}
+                  className="select-modern"
                   required
                 >
-                  <option value="">{t('wizard.step4.selectPlatform')}</option>
-                  <option value="facebook">{t('wizard.step4.platforms.facebook')}</option>
-                  <option value="instagram">{t('wizard.step4.platforms.instagram')}</option>
-                  <option value="youtube">{t('wizard.step4.platforms.youtube')}</option>
-                  <option value="zoom">{t('wizard.step4.platforms.zoom')}</option>
-                  <option value="otra">{t('wizard.step4.platforms.other')}</option>
+                  <option value="">Selecione</option>
+                  <option value="federal">Loteria Federal</option>
+                  <option value="megasena">Mega-Sena</option>
+                  <option value="quina">Quina</option>
+                  <option value="lotofacil">Lotofácil</option>
+                  <option value="lotomania">Lotomania</option>
+                  <option value="duplasena">Dupla Sena</option>
+                  <option value="timemania">Timemania</option>
+                  <option value="diadesorte">Dia de Sorte</option>
                 </select>
               </div>
-
-              {nuevaRifa.plataformaTransmision === 'otra' && (
-                <div className="form-group">
-                  <label>{t('wizard.step4.specifyPlatform')}</label>
-                  <input
-                    type="text"
-                    placeholder={t('wizard.step4.platformNamePlaceholder')}
-                    value={nuevaRifa.otraPlataforma || ''}
-                    onChange={(e) => setNuevaRifa({...nuevaRifa, otraPlataforma: e.target.value})}
-                  />
-                </div>
-              )}
-
-              <div className="form-group">
-                <label>{t('wizard.step4.streamLink')}</label>
+          
+              <div className="form-group-modern">
+                <label>Número do Sorteio (Opcional)</label>
                 <input
-                  type="url"
-                  placeholder={t('wizard.step4.streamLinkPlaceholder')}
-                  value={nuevaRifa.enlaceTransmision || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, enlaceTransmision: e.target.value})}
+                  type="text"
+                  placeholder="Ex: 2654"
+                  value={nuevaRifa.numeroSorteio || ''}
+                  onChange={(e) => setNuevaRifa({...nuevaRifa, numeroSorteio: e.target.value})}
+                  className="input-modern"
                 />
+                <small className="input-help">Número do concurso da loteria</small>
               </div>
-
-              <div className="form-group">
-                <label>{t('wizard.step4.drawMethod')}</label>
-                <select
-                  value={nuevaRifa.metodoSorteo || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, metodoSorteo: e.target.value})}
+            </div>
+          
+            {/* Pagamentos */}
+            <div className="form-section-modern">
+              <h3 className="section-subtitle">Métodos de Pagamento</h3>
+              
+              <div className="form-group-modern">
+                <label>Chave PIX *</label>
+                <input
+                  type="text"
+                  placeholder="CPF, CNPJ, email, telefone ou chave aleatória"
+                  value={nuevaRifa.pixKey || ''}
+                  onChange={(e) => setNuevaRifa({...nuevaRifa, pixKey: e.target.value})}
+                  className="input-modern"
                   required
-                >
-                  <option value="">{t('wizard.step4.selectMethod')}</option>
-                  <option value="ruleta">{t('wizard.step4.methods.roulette')}</option>
-                  <option value="bolas">{t('wizard.step4.methods.balls')}</option>
-                  <option value="app">{t('wizard.step4.methods.app')}</option>
-                  <option value="otro">{t('wizard.step4.methods.other')}</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>{t('wizard.step4.witnesses')}</label>
-                <textarea
-                  placeholder={t('wizard.step4.witnessesPlaceholder')}
-                  value={nuevaRifa.testigos || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, testigos: e.target.value})}
-                  rows="3"
                 />
+                <small className="input-help">
+                  Os pagamentos via PIX serão direcionados para esta chave
+                </small>
               </div>
-            </div>
-
-            {/* Formas de Pago - Datos donde el creador RECIBE el dinero */}
-            <div className="pagos-section">
-              <h4>{t('wizard.step4.paymentData')}</h4>
-              <p className="section-description">
-                {t('wizard.step4.paymentDataDesc')}
-              </p>
-              
-              <div className="datos-bancarios-creador">
-                <h5>{t('wizard.step4.bankData')}</h5>
-                  <div className="form-group">
-                  <label>{t('wizard.step4.clabe')} *</label>
-                    <input
-                      type="text"
-                      placeholder={t('wizard.step4.clabePlaceholder')}
-                    value={nuevaRifa.formasPago.clabe || ''}
-                      onChange={(e) => actualizarFormaPago('clabe', e.target.value)}
-                    maxLength={18}
-                    />
-                  <small>{t('wizard.step4.clabeHelp')}</small>
-                  </div>
-                  <div className="form-group">
-                  <label>{t('wizard.step4.accountNumber')}</label>
-                    <input
-                      type="text"
-                      placeholder={t('wizard.step4.accountNumberPlaceholder')}
-                    value={nuevaRifa.formasPago.numeroCuenta || ''}
-                      onChange={(e) => actualizarFormaPago('numeroCuenta', e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                  <label>{t('wizard.step4.bankName')} *</label>
-                    <input
-                      type="text"
-                    placeholder={t('wizard.step4.bankNamePlaceholder')}
-                    value={nuevaRifa.formasPago.banco || ''}
-                      onChange={(e) => actualizarFormaPago('banco', e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                  <label>{t('wizard.step4.accountHolder')} *</label>
-                    <input
-                      type="text"
-                    placeholder={t('wizard.step4.accountHolderPlaceholder')}
-                    value={nuevaRifa.formasPago.nombreTitular || ''}
-                      onChange={(e) => actualizarFormaPago('nombreTitular', e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                  <label>{t('wizard.step4.phone')}</label>
-                    <input
-                      type="tel"
-                      placeholder={t('wizard.step4.phonePlaceholder')}
-                    value={nuevaRifa.formasPago.telefono || ''}
-                      onChange={(e) => actualizarFormaPago('telefono', e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                  <label>{t('wizard.step4.whatsapp')}</label>
-                    <input
-                      type="tel"
-                      placeholder={t('wizard.step4.whatsappPlaceholder')}
-                    value={nuevaRifa.formasPago.whatsapp || ''}
-                      onChange={(e) => actualizarFormaPago('whatsapp', e.target.value)}
-                    />
-                  </div>
-                
-                <div className="info-box">
-                  <p>{t('wizard.step4.paymentInfo')}</p>
-                </div>
+          
+              <div className="form-group-modern">
+                <label className="checkbox-label-modern">
+                  <input
+                    type="checkbox"
+                    checked={nuevaRifa.aceitaCartao || false}
+                    onChange={(e) => setNuevaRifa({...nuevaRifa, aceitaCartao: e.target.checked})}
+                  />
+                  <span>Aceitar pagamento com cartão de crédito</span>
+                </label>
+                <small className="input-help">
+                  Os pagamentos com cartão serão processados via Stripe
+                </small>
               </div>
-            </div>
-
-            {/* Términos y Condiciones */}
-            <div className="terminos-section">
-              <h4>{t('wizard.step4.terms')}</h4>
-              <div className="terminos-resumen">
-                <p><strong>{t('wizard.step4.termsConfirm')}</strong></p>
-                <ul>
-                  <li>{t('wizard.step4.termsList.nonProfit')}</li>
-                  <li>{t('wizard.step4.termsList.liveDraw')}</li>
-                  <li>{t('wizard.step4.termsList.deliverPrizes')}</li>
-                  <li>{t('wizard.step4.termsList.transparency')}</li>
-                  <li>{t('wizard.step4.termsList.commission')}</li>
-                </ul>
-              </div>
-              
-              <div className="form-group">
-                <label>
+          
+              <div className="form-group-modern">
+                <label className="checkbox-label-modern">
                   <input
                     type="checkbox"
                     checked={terminosAceptados}
                     onChange={(e) => setTerminosAceptados(e.target.checked)}
                   />
-                  {t('wizard.step4.acceptTerms')}
+                  <span>Aceito os <button type="button" className="link-button" onClick={() => setMostrarTerminos(true)}>Termos e Condições</button></span>
                 </label>
-                <button 
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setMostrarTerminos(true)}
-                  style={{marginTop: '0.5rem'}}
-                >
-                  {t('wizard.step4.readTerms')}
-                </button>
               </div>
             </div>
           </div>
@@ -1191,53 +700,41 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
 
   return (
     <div className="create-rifa-wizard-modern">
-      {/* Header Moderno */}
       <div className="wizard-header-modern">
         <div className="header-content">
           <h1 className="wizard-title-modern">
             <span className="wizard-icon-modern">✨</span>
-            {t('wizard.title')}
+            Criar Nova Rifa
           </h1>
-          <p className="wizard-subtitle">{t('wizard.subtitle')}</p>
-          </div>
+          <p className="wizard-subtitle">Preencha os dados abaixo para criar sua rifa profissional</p>
+        </div>
         
-        {/* Indicador de Pasos Mejorado */}
         <div className="wizard-steps-indicator">
           <div className={`wizard-step ${pasoActual >= 1 ? 'active' : ''} ${pasoActual > 1 ? 'completed' : ''}`}>
-            <div className="step-circle">
-              {pasoActual > 1 ? '✓' : '1'}
-            </div>
-            <span className="step-label">{t('wizard.step1.title')}</span>
+            <div className="step-circle">{pasoActual > 1 ? '✓' : '1'}</div>
+            <span className="step-label">Informações</span>
           </div>
           <div className={`wizard-step ${pasoActual >= 2 ? 'active' : ''} ${pasoActual > 2 ? 'completed' : ''}`}>
-            <div className="step-circle">
-              {pasoActual > 2 ? '✓' : '2'}
-            </div>
-            <span className="step-label">{t('wizard.step2.title')}</span>
+            <div className="step-circle">{pasoActual > 2 ? '✓' : '2'}</div>
+            <span className="step-label">Categoria</span>
           </div>
           <div className={`wizard-step ${pasoActual >= 3 ? 'active' : ''} ${pasoActual > 3 ? 'completed' : ''}`}>
-            <div className="step-circle">
-              {pasoActual > 3 ? '✓' : '3'}
-            </div>
-            <span className="step-label">{t('wizard.step3.title')}</span>
+            <div className="step-circle">{pasoActual > 3 ? '✓' : '3'}</div>
+            <span className="step-label">Prêmio</span>
           </div>
           <div className={`wizard-step ${pasoActual >= 4 ? 'active' : ''}`}>
-            <div className="step-circle">
-              {pasoActual === 4 ? '4' : ''}
-            </div>
-            <span className="step-label">{t('wizard.step4.title')}</span>
+            <div className="step-circle">{pasoActual === 4 ? '4' : ''}</div>
+            <span className="step-label">Finalizar</span>
           </div>
         </div>
       </div>
 
-      {/* Contenido del Paso */}
       <div className="wizard-content-modern">
         <div className="step-content-wrapper">
-        {renderPaso()}
+          {renderPaso()}
         </div>
       </div>
 
-      {/* Acciones */}
       <div className="wizard-actions-modern">
         <button 
           type="button" 
@@ -1246,7 +743,7 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
           disabled={pasoActual === 1}
         >
           <span className="btn-icon">←</span>
-          <span>{t('wizard.actions.back')}</span>
+          <span>Voltar</span>
         </button>
         
         {pasoActual < totalPasos ? (
@@ -1256,7 +753,7 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
             onClick={siguientePaso}
             disabled={!puedeContinuar()}
           >
-            <span>{t('wizard.actions.next')}</span>
+            <span>Continuar</span>
             <span className="btn-icon">→</span>
           </button>
         ) : (
@@ -1265,21 +762,15 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
               type="button" 
               className="btn-wizard-create"
               onClick={manejarCrearRifa}
-              disabled={!puedeContinuar()}
+              disabled={!puedeContinuar() || subiendoFotos}
             >
               <span className="btn-icon">🎯</span>
-              <span>{t('wizard.actions.create')}</span>
+              <span>{subiendoFotos ? 'Subiendo fotos...' : 'Criar Rifa'}</span>
             </button>
-            {!puedeContinuar() && (
-              <p className="terms-warning">
-                {t('wizard.actions.mustAcceptTerms')}
-              </p>
-            )}
           </div>
         )}
       </div>
 
-      {/* Modal de Términos y Condiciones */}
       {mostrarTerminos && (
         <TermsAndConditions
           onAccept={manejarAceptarTerminos}
@@ -1287,134 +778,31 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
         />
       )}
 
-      {/* Modal de Éxito */}
       {mostrarMensajeExito && (
         <div className="modal-overlay">
           <div className="modal-content success-modal">
             <div className="success-icon">🎉</div>
-            <h2>{t('wizard.success.title')}</h2>
-            <p>{t('wizard.success.message')}</p>
+            <h2>Rifa criada com sucesso!</h2>
+            <p>Você será redirecionado para a página de gerenciamento.</p>
             <div className="success-actions">
               <button 
                 className="btn-primary"
-                onClick={() => window.location.href = `/gestionar/${rifaCreada}`}
+                onClick={() => window.location.href = '/rifas'}
               >
-                <span className="btn-icon">⚙️</span>
-                <span>{t('wizard.success.manage')}</span>
+                Ver minhas rifas
               </button>
               <button 
                 className="btn-secondary"
                 onClick={() => window.location.href = '/'}
               >
-                <span className="btn-icon">🏠</span>
-                <span>{t('wizard.success.goHome')}</span>
+                Ir para o Início
               </button>
             </div>
-            <small style={{color: '#64748b', marginTop: '1rem', display: 'block'}}>
-              {t('wizard.success.redirecting')}
-            </small>
           </div>
         </div>
       )}
     </div>
   );
-};
-
-// Función auxiliar para generar elementos (copiada del App.js)
-const generarElementosRifa = (tipo, cantidad) => {
-  switch (tipo) {
-    case 'numeros':
-      return Array.from({ length: cantidad }, (_, i) => i + 1);
-    
-    case 'baraja':
-      const palos = ['♠', '♥', '♦', '♣'];
-      const valores = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-      const cartas = [];
-      palos.forEach(palo => {
-        valores.forEach(valor => {
-          cartas.push(`${valor}${palo}`);
-        });
-      });
-      cartas.push('🃏', '🂠');
-      return cartas.slice(0, cantidad);
-    
-    case 'abecedario':
-      return Array.from({ length: Math.min(cantidad, 26) }, (_, i) => 
-        String.fromCharCode(65 + i)
-      );
-    
-    case 'animales':
-      const animales = ['🐭 Rata', '🐮 Buey', '🐯 Tigre', '🐰 Conejo', '🐲 Dragón', '🐍 Serpiente', 
-                       '🐴 Caballo', '🐐 Cabra', '🐵 Mono', '🐔 Gallo', '🐶 Perro', '🐷 Cerdo'];
-      return animales.slice(0, Math.min(cantidad, 12));
-    
-    case 'colores':
-      // Generar colores simples para la cantidad solicitada
-      const coloresBasicos = ['Rojo', 'Azul', 'Verde', 'Amarillo', 'Morado', 'Naranja', 'Negro', 'Blanco', 'Marrón', 'Rosa'];
-      return coloresBasicos.slice(0, Math.min(cantidad, coloresBasicos.length));
-    
-    case 'equipos':
-      const equipos = ['🇲🇽 América', '🇲🇽 Chivas', '🇲🇽 Cruz Azul', '🇲🇽 Pumas', '🇲🇽 Tigres', 
-                      '🇲🇽 Monterrey', '🇲🇽 Santos', '🇲🇽 Pachuca', '🇲🇽 Toluca', '🇲🇽 Atlas',
-                      '🇪🇸 Real Madrid', '🇪🇸 Barcelona', '🇪🇸 Atlético', '🇮🇹 Juventus', '🇮🇹 Milan',
-                      '🇩🇪 Bayern', '🇬🇧 Manchester United', '🇬🇧 Liverpool', '🇫🇷 PSG', '🇧🇷 Flamengo'];
-      return equipos.slice(0, Math.min(cantidad, 20));
-    
-    case 'emojis':
-      const emojis = [
-        '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
-        '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
-        '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
-        '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
-        '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔',
-        '🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒',
-        '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬',
-        '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🎱', '🪀',
-        '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁',
-        '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '💽', '💾', '💿',
-        '📀', '🧮', '🎥', '📷', '📸', '📹', '🎬', '📺', '📻', '🎙️',
-        '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
-        '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️'
-      ];
-      return emojis.slice(0, Math.min(cantidad, 100));
-    
-    case 'paises':
-      const paises = [
-        // América del Norte
-        '🇺🇸 Estados Unidos', '🇨🇦 Canadá', '🇲🇽 México',
-        // América Central y Caribe
-        '🇬🇹 Guatemala', '🇧🇿 Belice', '🇸🇻 El Salvador', '🇭🇳 Honduras', 
-        '🇳🇮 Nicaragua', '🇨🇷 Costa Rica', '🇵🇦 Panamá', '🇨🇺 Cuba',
-        '🇯🇲 Jamaica', '🇭🇹 Haití', '🇩🇴 República Dominicana', '🇵🇷 Puerto Rico',
-        // América del Sur
-        '🇧🇷 Brasil', '🇦🇷 Argentina', '🇨🇱 Chile', '🇵🇪 Perú', '🇨🇴 Colombia',
-        '🇻🇪 Venezuela', '🇪🇨 Ecuador', '🇧🇴 Bolivia', '🇵🇾 Paraguay', '🇺🇾 Uruguay',
-        '🇬🇾 Guyana', '🇸🇷 Surinam', '🇬🇫 Guayana Francesa',
-        // Europa
-        '🇪🇸 España', '🇫🇷 Francia', '🇩🇪 Alemania', '🇮🇹 Italia', '🇬🇧 Reino Unido',
-        '🇳🇱 Países Bajos', '🇧🇪 Bélgica', '🇨🇭 Suiza', '🇦🇹 Austria', '🇵🇱 Polonia',
-        '🇷🇺 Rusia', '🇺🇦 Ucrania', '🇸🇪 Suecia', '🇳🇴 Noruega', '🇩🇰 Dinamarca',
-        '🇫🇮 Finlandia', '🇮🇸 Islandia', '🇮🇪 Irlanda', '🇵🇹 Portugal', '🇬🇷 Grecia',
-        // Asia
-        '🇨🇳 China', '🇯🇵 Japón', '🇰🇷 Corea del Sur', '🇮🇳 India', '🇹🇭 Tailandia',
-        '🇻🇳 Vietnam', '🇵🇭 Filipinas', '🇮🇩 Indonesia', '🇲🇾 Malasia', '🇸🇬 Singapur',
-        '🇱🇰 Sri Lanka', '🇧🇩 Bangladesh', '🇵🇰 Pakistán', '🇦🇫 Afganistán', '🇮🇷 Irán',
-        '🇮🇶 Irak', '🇸🇦 Arabia Saudí', '🇦🇪 Emiratos Árabes', '🇹🇷 Turquía', '🇮🇱 Israel',
-        // África
-        '🇪🇬 Egipto', '🇿🇦 Sudáfrica', '🇳🇬 Nigeria', '🇰🇪 Kenia', '🇪🇹 Etiopía',
-        '🇲🇦 Marruecos', '🇩🇿 Argelia', '🇹🇳 Túnez', '🇱🇾 Libia', '🇸🇩 Sudán',
-        '🇨🇩 República Democrática del Congo', '🇹🇿 Tanzania', '🇺🇬 Uganda', '🇬🇭 Ghana',
-        '🇨🇮 Costa de Marfil', '🇸🇳 Senegal', '🇲🇱 Malí', '🇧🇫 Burkina Faso', '🇳🇪 Níger',
-        // Oceanía
-        '🇦🇺 Australia', '🇳🇿 Nueva Zelanda', '🇫🇯 Fiyi', '🇵🇬 Papúa Nueva Guinea',
-        '🇳🇨 Nueva Caledonia', '🇻🇺 Vanuatu', '🇸🇧 Islas Salomón', '🇰🇮 Kiribati',
-        '🇹🇻 Tuvalu', '🇳🇷 Nauru', '🇵🇼 Palaos', '🇫🇲 Micronesia', '🇲🇭 Islas Marshall'
-      ];
-      return paises.slice(0, Math.min(cantidad, 100));
-    
-    default:
-      return Array.from({ length: cantidad }, (_, i) => i + 1);
-  }
 };
 
 export default CreateRifaWizard;
