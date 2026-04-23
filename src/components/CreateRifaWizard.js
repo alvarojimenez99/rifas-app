@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import TermsAndConditions from './TermsAndConditions';
-import { catalogosService, uploadService } from '../services/api';
+import { catalogosService } from '../services/api';
 import { showError, showSuccess } from '../utils/swal';
 import { API_BASE } from '../config/api';
 
-// Mapa completo de colores en español (mantener igual)
+// Mapa completo de colores
 const coloresMap = {
   'rojo': '#FF0000', 'azul': '#0000FF', 'verde': '#00FF00', 'amarillo': '#FFFF00',
   'morado': '#800080', 'naranja': '#FFA500', 'negro': '#000000', 'blanco': '#FFFFFF',
@@ -17,20 +17,6 @@ const coloresMap = {
   'violeta': '#8A2BE2', 'lavanda': '#E6E6FA', 'magenta': '#FF00FF',
   'oro': '#FFD700', 'plata': '#C0C0C0', 'turquesa': '#40E0D0', 'esmeralda': '#50C878',
   'coral': '#FF7F50', 'salmón': '#FA8072', 'melocotón': '#FFDAB9', 'menta': '#98FB98'
-};
-
-const obtenerColorPorNombre = (nombreColor) => {
-  if (!nombreColor) return '#E5E7EB';
-  const colorNormalizado = nombreColor.toLowerCase().trim();
-  return coloresMap[colorNormalizado] || '#E5E7EB';
-};
-
-const obtenerColoresDisponibles = (coloresEnUso) => {
-  if (!coloresEnUso || coloresEnUso.length === 0) {
-    return Object.keys(coloresMap);
-  }
-  const coloresUsados = coloresEnUso.map(color => color.toLowerCase().trim()).filter(color => color !== '');
-  return Object.keys(coloresMap).filter(color => !coloresUsados.includes(color.toLowerCase()));
 };
 
 const generarElementosRifa = (tipo, cantidad) => {
@@ -102,16 +88,11 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
   const [mostrarTerminos, setMostrarTerminos] = useState(false);
   const [terminosAceptados, setTerminosAceptados] = useState(false);
   const [mostrarMensajeExito, setMostrarMensajeExito] = useState(false);
-  const [rifaCreada, setRifaCreada] = useState(null);
-  const [mostrarSugerenciasColores, setMostrarSugerenciasColores] = useState(false);
   const [subiendoFotos, setSubiendoFotos] = useState(false);
   
   // Estados para catálogos
-  const [paises, setPaises] = useState([]);
-  const [estados, setEstados] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [, setCargandoPaises] = useState(false);
-  const [cargandoEstados, setCargandoEstados] = useState(false);
   const [cargandoCategorias, setCargandoCategorias] = useState(true);
   
   const totalPasos = 4;
@@ -122,7 +103,7 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
       try {
         setCargandoPaises(true);
         const response = await catalogosService.getPaises();
-        setPaises(response.paises || []);
+        // setPaises(response.paises || []);
       } catch (error) {
         console.error('Error cargando países:', error);
       } finally {
@@ -147,26 +128,6 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
     };
     cargarCategorias();
   }, []);
-  
-  useEffect(() => {
-    const cargarEstados = async () => {
-      if (nuevaRifa.pais) {
-        try {
-          setCargandoEstados(true);
-          const response = await catalogosService.getEstados(nuevaRifa.pais);
-          setEstados(response.estados || []);
-        } catch (error) {
-          console.error('Error cargando estados:', error);
-          setEstados([]);
-        } finally {
-          setCargandoEstados(false);
-        }
-      } else {
-        setEstados([]);
-      }
-    };
-    cargarEstados();
-  }, [nuevaRifa.pais]);
 
   useEffect(() => {
     if (pasoActual === 3 && (!nuevaRifa.premios || nuevaRifa.premios.length === 0)) {
@@ -211,49 +172,48 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
     }
   };
 
-  // 🔧 FUNCIÓN CORREGIDA: Manejar selección de fotos y subirlas al servidor
+  // Manejar selección de fotos y subirlas al servidor
   const manejarSeleccionFotos = async (e) => {
     const archivos = Array.from(e.target.files);
     if (archivos.length === 0) return;
     
     setSubiendoFotos(true);
-   // showSuccess('Subiendo', `Subiendo ${archivos.length} foto(s)...`);
     
     try {
       const urlsSubidas = [];
       
       for (const archivo of archivos) {
         try {
-          // Subir cada imagen al servidor
           const url = await subirImagenAlServidor(archivo);
           urlsSubidas.push({
             id: Date.now() + Math.random(),
             url: url,
             url_foto: url,
-            descripcion: '',
+            descricao: '',
             orden: nuevaRifa.fotosPremios?.length || 0
           });
           console.log('✅ Imagen subida:', url);
         } catch (err) {
           console.error('Error subiendo imagen:', err);
-          showError('Error', `No se pudo subir la imagen: ${archivo.name}`);
+          showError('Erro', `Não foi possível subir a imagem: ${archivo.name}`);
         }
       }
       
-      // Actualizar el estado con las nuevas fotos
       const fotosActuales = nuevaRifa.fotosPremios || [];
       setNuevaRifa({
         ...nuevaRifa,
         fotosPremios: [...fotosActuales, ...urlsSubidas]
       });
       
-     // showSuccess('Éxito', `${urlsSubidas.length} foto(s) subida(s) correctamente`);
+      if (urlsSubidas.length > 0) {
+        showSuccess('Sucesso', `${urlsSubidas.length} foto(s) subida(s) com sucesso`);
+      }
     } catch (error) {
       console.error('Error procesando fotos:', error);
-      showError('Error', 'Error al procesar las fotos');
+      showError('Erro', 'Erro ao processar as fotos');
     } finally {
       setSubiendoFotos(false);
-      e.target.value = ''; // Limpiar el input
+      e.target.value = '';
     }
   };
 
@@ -263,20 +223,17 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
   };
 
   const manejarCrearRifa = async () => {
-    // Validar que haya fotos (opcional, pero mostrar advertencia)
     if (!nuevaRifa.fotosPremios || nuevaRifa.fotosPremios.length === 0) {
-      const confirmar = window.confirm('¿No has agregado fotos del premio. ¿Deseas continuar?');
+      const confirmar = window.confirm('Você não adicionou fotos do prêmio. Deseja continuar?');
       if (!confirmar) return;
     }
     
-    // Preparar los datos para enviar
     const datosParaEnviar = {
       ...nuevaRifa,
-      // Asegurar que las fotos tengan el formato correcto
       fotosPremios: (nuevaRifa.fotosPremios || []).map(foto => ({
         url: foto.url || foto.url_foto,
         url_foto: foto.url || foto.url_foto,
-        descripcion: foto.descripcion || '',
+        descricao: foto.descricao || '',
         orden: foto.orden || 0
       }))
     };
@@ -285,7 +242,6 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
     
     const rifaId = await agregarRifa(datosParaEnviar);
     if (rifaId) {
-      setRifaCreada(rifaId);
       setMostrarMensajeExito(true);
       setTimeout(() => {
         window.location.href = '/rifas';
@@ -316,9 +272,7 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
             </div>
             <div className="form-section-modern">
               <div className="form-group-modern">
-                <label>
-                  <span className="label-text">Nome da Rifa *</span>
-                </label>
+                <label><span className="label-text">Nome da Rifa *</span></label>
                 <input
                   type="text"
                   placeholder="Ex: iPhone 15 Pro Max"
@@ -382,33 +336,17 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
                 <label>Visibilidade</label>
                 <div className="visibility-options-modern">
                   <label className={`radio-option-modern ${!nuevaRifa.esPrivada ? 'active' : ''}`}>
-                    <input
-                      type="radio"
-                      name="visibilidad"
-                      checked={!nuevaRifa.esPrivada}
-                      onChange={() => setNuevaRifa({...nuevaRifa, esPrivada: false})}
-                    />
+                    <input type="radio" name="visibilidad" checked={!nuevaRifa.esPrivada} onChange={() => setNuevaRifa({...nuevaRifa, esPrivada: false})} />
                     <span className="radio-content">
                       <span className="radio-icon">🌍</span>
-                      <div>
-                        <strong>Pública</strong>
-                        <small>Visível para todos os participantes</small>
-                      </div>
+                      <div><strong>Pública</strong><small>Visível para todos os participantes</small></div>
                     </span>
                   </label>
                   <label className={`radio-option-modern ${nuevaRifa.esPrivada ? 'active' : ''}`}>
-                    <input
-                      type="radio"
-                      name="visibilidad"
-                      checked={nuevaRifa.esPrivada}
-                      onChange={() => setNuevaRifa({...nuevaRifa, esPrivada: true})}
-                    />
+                    <input type="radio" name="visibilidad" checked={nuevaRifa.esPrivada} onChange={() => setNuevaRifa({...nuevaRifa, esPrivada: true})} />
                     <span className="radio-content">
                       <span className="radio-icon">🔒</span>
-                      <div>
-                        <strong>Privada</strong>
-                        <small>Apenas com link direto</small>
-                      </div>
+                      <div><strong>Privada</strong><small>Apenas com link direto</small></div>
                     </span>
                   </label>
                 </div>
@@ -452,15 +390,11 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
                   >
                     <option value="">Selecione uma categoria</option>
                     {categorias.map(cat => (
-                      <option key={cat.id} value={cat.slug}>
-                        {cat.nome}
-                      </option>
+                      <option key={cat.id} value={cat.slug}>{cat.nome}</option>
                     ))}
                   </select>
                 )}
-                <small className="input-help">
-                  Escolha a categoria que melhor representa o prêmio da sua rifa
-                </small>
+                <small className="input-help">Escolha a categoria que melhor representa o prêmio da sua rifa</small>
               </div>
 
               <div className="form-group-modern">
@@ -474,9 +408,7 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
                   className="input-modern"
                   required
                 />
-                <small className="input-help">
-                  Defina quantos números estarão disponíveis para venda
-                </small>
+                <small className="input-help">Defina quantos números estarão disponíveis para venda</small>
               </div>
             </div>
           </div>
@@ -516,22 +448,23 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
               <div className="form-group-modern">
                 <label>Descrição do Prêmio</label>
                 <textarea
-                  placeholder="Descreva detalhadamente o prêmio..."
-                  value={nuevaRifa.premios?.[0]?.descripcion || ''}
-                  onChange={(e) => {
-                    const nuevosPremios = [...(nuevaRifa.premios || [])];
-                    if (nuevosPremios.length === 0) {
-                      nuevosPremios.push({ id: Date.now(), nombre: '', descripcion: '', posicion: 1, fotos: [] });
-                    }
-                    nuevosPremios[0].descripcion = e.target.value;
-                    setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
-                  }}
-                  className="textarea-modern"
-                  rows="4"
-                />
+  placeholder="Descreva detalhadamente o prêmio..."
+  value={nuevaRifa.premios?.[0]?.descripcion || ''}
+  onChange={(e) => {
+    const nuevosPremios = [...(nuevaRifa.premios || [])];
+    if (nuevosPremios.length === 0) {
+      nuevosPremios.push({ id: Date.now(), nombre: '', descripcion: '', posicion: 1, fotos: [] });
+    }
+    nuevosPremios[0].descripcion = e.target.value;
+    setNuevaRifa({...nuevaRifa, premios: nuevosPremios});
+  }}
+  className="textarea-modern"
+  rows="6"
+  style={{ minHeight: '150px', fontSize: '15px', lineHeight: '1.6' }}
+/>
               </div>
           
-              {/* 🔧 Fotos do Prêmio - CORREGIDO */}
+              {/* Fotos do Prêmio */}
               <div className="form-group-modern">
                 <label>Fotos do Prêmio</label>
                 <div className="fotos-upload-area">
@@ -545,7 +478,7 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
                       style={{ display: 'none' }}
                     />
                     <span className="btn-secondary">
-                      {subiendoFotos ? '⏳ Subiendo...' : '📸 Adicionar Fotos'}
+                      {subiendoFotos ? '⏳ Enviando...' : '📸 Adicionar Fotos'}
                     </span>
                   </label>
                   <small className="input-help">Adicione até 5 fotos do prêmio (as imagens serão enviadas ao servidor)</small>
@@ -555,7 +488,14 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
                   <div className="fotos-grid-modern">
                     {nuevaRifa.fotosPremios.map((foto, idx) => (
                       <div key={foto.id || idx} className="foto-item-modern">
-                        <img src={foto.url || foto.url_foto} alt={`Foto ${idx + 1}`} />
+                        <img 
+                          src={foto.url || foto.url_foto} 
+                          alt={`Foto ${idx + 1}`}
+                          onError={(e) => {
+                            console.error('Erro carregando imagem:', foto.url);
+                            e.target.src = 'https://via.placeholder.com/100?text=Erro';
+                          }}
+                        />
                         <button
                           type="button"
                           className="btn-remover-foto"
@@ -577,11 +517,9 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
                   placeholder="https://youtube.com/watch?v=..."
                   value={nuevaRifa.videoUrl || ''}
                   onChange={(e) => setNuevaRifa({...nuevaRifa, videoUrl: e.target.value})}
-                  className="input-modern"
+                  className="input-modern" style={{ padding: '16px 20px', fontSize: '15px' }}
                 />
-                <small className="input-help">
-                  Adicione um vídeo do YouTube mostrando o prêmio
-                </small>
+                <small className="input-help">Adicione um vídeo do YouTube mostrando o prêmio</small>
               </div>
             </div>
           </div>
@@ -598,98 +536,64 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
               </div>
             </div>
           
-            {/* Sorteio */}
-            <div className="form-section-modern">
-              <h3 className="section-subtitle">Dados do Sorteio</h3>
-              
-              <div className="form-group-modern">
-                <label>Data do Sorteio *</label>
-                <input
-                  type="datetime-local"
-                  value={nuevaRifa.fechaSorteo || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, fechaSorteo: e.target.value})}
-                  className="input-modern"
-                  required
-                />
-              </div>
-          
-              <div className="form-group-modern">
-                <label>Tipo de Sorteio *</label>
-                <select
-                  value={nuevaRifa.loteriaTipo || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, loteriaTipo: e.target.value})}
-                  className="select-modern"
-                  required
-                >
-                  <option value="">Selecione</option>
-                  <option value="federal">Loteria Federal</option>
-                  <option value="megasena">Mega-Sena</option>
-                  <option value="quina">Quina</option>
-                  <option value="lotofacil">Lotofácil</option>
-                  <option value="lotomania">Lotomania</option>
-                  <option value="duplasena">Dupla Sena</option>
-                  <option value="timemania">Timemania</option>
-                  <option value="diadesorte">Dia de Sorte</option>
-                </select>
-              </div>
-          
-              <div className="form-group-modern">
-                <label>Número do Sorteio (Opcional)</label>
-                <input
-                  type="text"
-                  placeholder="Ex: 2654"
-                  value={nuevaRifa.numeroSorteio || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, numeroSorteio: e.target.value})}
-                  className="input-modern"
-                />
-                <small className="input-help">Número do concurso da loteria</small>
-              </div>
-            </div>
-          
-            {/* Pagamentos */}
-            <div className="form-section-modern">
-              <h3 className="section-subtitle">Métodos de Pagamento</h3>
-              
-              <div className="form-group-modern">
-                <label>Chave PIX *</label>
-                <input
-                  type="text"
-                  placeholder="CPF, CNPJ, email, telefone ou chave aleatória"
-                  value={nuevaRifa.pixKey || ''}
-                  onChange={(e) => setNuevaRifa({...nuevaRifa, pixKey: e.target.value})}
-                  className="input-modern"
-                  required
-                />
-                <small className="input-help">
-                  Os pagamentos via PIX serão direcionados para esta chave
-                </small>
-              </div>
-          
-              <div className="form-group-modern">
-                <label className="checkbox-label-modern">
-                  <input
-                    type="checkbox"
-                    checked={nuevaRifa.aceitaCartao || false}
-                    onChange={(e) => setNuevaRifa({...nuevaRifa, aceitaCartao: e.target.checked})}
-                  />
-                  <span>Aceitar pagamento com cartão de crédito</span>
-                </label>
-                <small className="input-help">
-                  Os pagamentos com cartão serão processados via Stripe
-                </small>
-              </div>
-          
-              <div className="form-group-modern">
-                <label className="checkbox-label-modern">
-                  <input
-                    type="checkbox"
-                    checked={terminosAceptados}
-                    onChange={(e) => setTerminosAceptados(e.target.checked)}
-                  />
-                  <span>Aceito os <button type="button" className="link-button" onClick={() => setMostrarTerminos(true)}>Termos e Condições</button></span>
-                </label>
-              </div>
-            </div>
+         {/* Sorteio e Pagamento */}
+<div className="form-section-modern">
+  <h3 className="section-subtitle">🎲 Dados do Sorteio</h3>
+  
+  <div className="form-row-grid">
+    <div className="form-group-modern">
+      <label>Data do Sorteio *</label>
+      <input type="datetime-local" value={nuevaRifa.fechaSorteo || ''} onChange={(e) => setNuevaRifa({...nuevaRifa, fechaSorteo: e.target.value})} className="input-modern" required />
+    </div>
+    
+    <div className="form-group-modern">
+      <label>Tipo de Sorteio *</label>
+      <select value={nuevaRifa.loteriaTipo || ''} onChange={(e) => setNuevaRifa({...nuevaRifa, loteriaTipo: e.target.value})} className="select-modern" required>
+        <option value="">Selecione</option>
+        <option value="federal">Loteria Federal</option>
+        <option value="megasena">Mega-Sena</option>
+        <option value="quina">Quina</option>
+        <option value="lotofacil">Lotofácil</option>
+        <option value="lotomania">Lotomania</option>
+        <option value="duplasena">Dupla Sena</option>
+        <option value="timemania">Timemania</option>
+        <option value="diadesorte">Dia de Sorte</option>
+      </select>
+    </div>
+  </div>
+  
+  <div className="form-group-modern">
+    <label>Número do Sorteio (Opcional)</label>
+    <input type="text" placeholder="Ex: 2654" value={nuevaRifa.numeroSorteio || ''} onChange={(e) => setNuevaRifa({...nuevaRifa, numeroSorteio: e.target.value})} className="input-modern" />
+    <small className="input-help">Número do concurso da loteria</small>
+  </div>
+</div>
+
+{/* Métodos de Pagamento */}
+<div className="form-section-modern">
+  <h3 className="section-subtitle">💳 Métodos de Pagamento</h3>
+  
+  <div className="form-group-modern">
+    <label>Chave PIX *</label>
+    <input type="text" placeholder="CPF, CNPJ, email, telefone ou chave aleatória" value={nuevaRifa.pixKey || ''} onChange={(e) => setNuevaRifa({...nuevaRifa, pixKey: e.target.value})} className="input-modern" required />
+    <small className="input-help">Os pagamentos via PIX serão direcionados para esta chave</small>
+  </div>
+
+  <div className="form-group-modern">
+    <label className="checkbox-label-modern">
+      <input type="checkbox" checked={nuevaRifa.aceitaCartao || false} onChange={(e) => setNuevaRifa({...nuevaRifa, aceitaCartao: e.target.checked})} />
+      <span>Aceitar pagamento com cartão de crédito</span>
+    </label>
+    <small className="input-help">Os pagamentos com cartão serão processados via Stripe</small>
+  </div>
+
+  <div className="form-group-modern">
+    <label className="checkbox-label-modern">
+      <input type="checkbox" checked={terminosAceptados} onChange={(e) => setTerminosAceptados(e.target.checked)} />
+      <span>Aceito os <button type="button" className="link-button" onClick={() => setMostrarTerminos(true)}>Termos e Condições</button></span>
+    </label>
+  </div>
+</div>
           </div>
         );
 
@@ -736,46 +640,28 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
       </div>
 
       <div className="wizard-actions-modern">
-        <button 
-          type="button" 
-          className="btn-wizard-back"
-          onClick={pasoAnterior}
-          disabled={pasoActual === 1}
-        >
+        <button type="button" className="btn-wizard-back" onClick={pasoAnterior} disabled={pasoActual === 1}>
           <span className="btn-icon">←</span>
           <span>Voltar</span>
         </button>
         
         {pasoActual < totalPasos ? (
-          <button 
-            type="button" 
-            className="btn-wizard-next"
-            onClick={siguientePaso}
-            disabled={!puedeContinuar()}
-          >
+          <button type="button" className="btn-wizard-next" onClick={siguientePaso} disabled={!puedeContinuar()}>
             <span>Continuar</span>
             <span className="btn-icon">→</span>
           </button>
         ) : (
           <div className="final-step-actions">
-            <button 
-              type="button" 
-              className="btn-wizard-create"
-              onClick={manejarCrearRifa}
-              disabled={!puedeContinuar() || subiendoFotos}
-            >
+            <button type="button" className="btn-wizard-create" onClick={manejarCrearRifa} disabled={!puedeContinuar() || subiendoFotos}>
               <span className="btn-icon">🎯</span>
-              <span>{subiendoFotos ? 'Subiendo fotos...' : 'Criar Rifa'}</span>
+              <span>{subiendoFotos ? 'Enviando fotos...' : 'Criar Rifa'}</span>
             </button>
           </div>
         )}
       </div>
 
       {mostrarTerminos && (
-        <TermsAndConditions
-          onAccept={manejarAceptarTerminos}
-          onDecline={manejarRechazarTerminos}
-        />
+        <TermsAndConditions onAccept={manejarAceptarTerminos} onDecline={manejarRechazarTerminos} />
       )}
 
       {mostrarMensajeExito && (
@@ -785,22 +671,394 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
             <h2>Rifa criada com sucesso!</h2>
             <p>Você será redirecionado para a página de gerenciamento.</p>
             <div className="success-actions">
-              <button 
-                className="btn-primary"
-                onClick={() => window.location.href = '/rifas'}
-              >
-                Ver minhas rifas
-              </button>
-              <button 
-                className="btn-secondary"
-                onClick={() => window.location.href = '/'}
-              >
-                Ir para o Início
-              </button>
+              <button className="btn-primary" onClick={() => window.location.href = '/rifas'}>Ver minhas rifas</button>
+              <button className="btn-secondary" onClick={() => window.location.href = '/'}>Ir para o Início</button>
             </div>
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .create-rifa-wizard-modern {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 40px 24px;
+          min-height: 100vh;
+        }
+
+        .wizard-header-modern {
+          margin-bottom: 40px;
+          text-align: center;
+        }
+
+        .wizard-title-modern {
+          font-size: 36px;
+          font-weight: 800;
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 12px;
+        }
+
+        .wizard-subtitle {
+          color: #94a3b8;
+          font-size: 16px;
+        }
+
+        .wizard-steps-indicator {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 40px;
+          margin-bottom: 40px;
+          position: relative;
+        }
+
+        .wizard-step {
+          flex: 1;
+          text-align: center;
+          position: relative;
+        }
+
+        .step-circle {
+          width: 44px;
+          height: 44px;
+          background: rgba(30, 41, 59, 0.7);
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 10px;
+          font-weight: 700;
+          color: #94a3b8;
+        }
+
+        .wizard-step.active .step-circle {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          border-color: #f59e0b;
+          color: white;
+        }
+
+        .wizard-step.completed .step-circle {
+          background: #10b981;
+          border-color: #10b981;
+          color: white;
+        }
+
+        .step-label {
+          font-size: 13px;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .wizard-step.active .step-label {
+          color: #fbbf24;
+        }
+
+        .step-header-modern {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 28px;
+          padding-bottom: 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .step-icon-modern {
+          font-size: 48px;
+        }
+
+        .step-title-modern {
+          font-size: 28px;
+          font-weight: 700;
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 6px;
+        }
+
+        .step-description {
+          color: #94a3b8;
+          font-size: 14px;
+        }
+
+        .form-section-modern {
+          background: rgba(30, 41, 59, 0.5);
+          backdrop-filter: blur(10px);
+          border-radius: 24px;
+          padding: 32px;
+          margin-bottom: 28px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .form-group-modern {
+          margin-bottom: 24px;
+        }
+
+        .form-group-modern label {
+          display: block;
+          color: #f1f5f9 !important;
+          margin-bottom: 10px;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .label-text {
+          color: #f1f5f9;
+        }
+
+        .input-modern, .select-modern, .textarea-modern {
+          width: 100%;
+          padding: 14px 18px;
+          background: rgba(15, 23, 42, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          color: #f1f5f9;
+          font-size: 15px;
+          transition: all 0.2s;
+        }
+
+        .input-modern:focus, .select-modern:focus, .textarea-modern:focus {
+          outline: none;
+          border-color: #f59e0b;
+          background: rgba(15, 23, 42, 1);
+        }
+
+        .textarea-modern {
+          resize: vertical;
+          min-height: 100px;
+        }
+
+        .section-subtitle {
+          font-size: 20px;
+          font-weight: 600;
+          color: #fbbf24;
+          margin-bottom: 24px;
+          margin-top: 8px;
+        }
+
+        .fotos-upload-area {
+          margin-bottom: 20px;
+        }
+
+        .btn-secondary {
+          display: inline-block;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          padding: 12px 24px;
+          border-radius: 40px;
+          cursor: pointer;
+          color: #cbd5e1;
+          transition: all 0.2s;
+          font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        .fotos-grid-modern {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+          gap: 16px;
+          margin-top: 20px;
+        }
+
+        .foto-item-modern {
+          position: relative;
+          border-radius: 12px;
+          overflow: hidden;
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .foto-item-modern img {
+          width: 100%;
+          height: 110px;
+          object-fit: cover;
+        }
+
+        .btn-remover-foto {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          background: rgba(0, 0, 0, 0.7);
+          border: none;
+          border-radius: 50%;
+          width: 26px;
+          height: 26px;
+          cursor: pointer;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+        }
+
+        .checkbox-label-modern {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          color: #cbd5e1;
+        }
+
+        .wizard-actions-modern {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
+          margin-top: 40px;
+        }
+
+        .btn-wizard-back, .btn-wizard-next, .btn-wizard-create {
+          padding: 14px 32px;
+          border-radius: 40px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+          font-size: 16px;
+        }
+
+        .btn-wizard-back {
+          background: rgba(255, 255, 255, 0.1);
+          color: #cbd5e1;
+        }
+
+        .btn-wizard-next, .btn-wizard-create {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: white;
+        }
+
+        .btn-wizard-back:hover, .btn-wizard-next:hover, .btn-wizard-create:hover {
+          transform: translateY(-2px);
+        }
+
+        .btn-wizard-back:disabled, .btn-wizard-next:disabled, .btn-wizard-create:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .input-help {
+          display: block;
+          font-size: 12px;
+          color: #64748b;
+          margin-top: 8px;
+        }
+
+        .tipo-info-card {
+          margin-top: 12px;
+          padding: 10px 14px;
+          background: rgba(16, 185, 129, 0.1);
+          border-radius: 10px;
+          display: flex;
+          gap: 10px;
+        }
+
+        .info-icon {
+          font-size: 14px;
+        }
+
+        .info-text {
+          font-size: 13px;
+          color: #94a3b8;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: #1e293b;
+          border-radius: 24px;
+          padding: 36px;
+          max-width: 450px;
+          text-align: center;
+        }
+
+        .success-icon {
+          font-size: 72px;
+          margin-bottom: 20px;
+        }
+
+        .success-actions {
+          display: flex;
+          gap: 16px;
+          margin-top: 28px;
+        }
+
+        .btn-primary, .btn-secondary {
+          flex: 1;
+          padding: 14px;
+          border-radius: 40px;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+        }
+
+        .btn-primary {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: white;
+        }
+
+        .btn-secondary {
+          background: rgba(255, 255, 255, 0.1);
+          color: #cbd5e1;
+        }
+
+        .link-button {
+          background: none;
+          border: none;
+          color: #f59e0b;
+          cursor: pointer;
+          text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+          .create-rifa-wizard-modern {
+            padding: 20px;
+          }
+          
+          .form-section-modern {
+            padding: 20px;
+          }
+          
+          .step-header-modern {
+            flex-direction: column;
+            text-align: center;
+            gap: 12px;
+          }
+          
+          .wizard-steps-indicator {
+            flex-direction: column;
+            gap: 16px;
+          }
+          
+          .fotos-grid-modern {
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+          }
+          
+          .wizard-title-modern {
+            font-size: 28px;
+          }
+          
+          .step-title-modern {
+            font-size: 22px;
+          }
+        }
+      `}</style>
     </div>
   );
 };

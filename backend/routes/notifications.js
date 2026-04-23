@@ -1,7 +1,3 @@
-/**
- * Rutas para el sistema de notificaciones
- */
-
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
@@ -12,7 +8,6 @@ const {
   markAllAsRead,
   deleteNotification
 } = require('../services/notifications');
-const logger = require('../config/logger');
 
 /**
  * GET /api/notifications
@@ -35,10 +30,7 @@ router.get('/', authenticateToken, async (req, res) => {
       count: notifications.length
     });
   } catch (error) {
-    logger.error('Error obteniendo notificaciones', {
-      error: error.message,
-      userId: req.user.id
-    });
+    console.error('Error obteniendo notificaciones:', error.message);
     res.status(500).json({
       success: false,
       error: 'Error obteniendo notificaciones',
@@ -61,10 +53,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
       count
     });
   } catch (error) {
-    logger.error('Error obteniendo contador de notificaciones', {
-      error: error.message,
-      userId: req.user.id
-    });
+    console.error('Error obteniendo contador:', error.message);
     res.status(500).json({
       success: false,
       error: 'Error obteniendo contador',
@@ -89,11 +78,7 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
       notification
     });
   } catch (error) {
-    logger.error('Error marcando notificación como leída', {
-      error: error.message,
-      notificationId: req.params.id,
-      userId: req.user.id
-    });
+    console.error('Error marcando como leída:', error.message);
     res.status(500).json({
       success: false,
       error: 'Error marcando notificación como leída',
@@ -116,10 +101,7 @@ router.put('/read-all', authenticateToken, async (req, res) => {
       count
     });
   } catch (error) {
-    logger.error('Error marcando todas las notificaciones como leídas', {
-      error: error.message,
-      userId: req.user.id
-    });
+    console.error('Error marcando todas como leídas:', error.message);
     res.status(500).json({
       success: false,
       error: 'Error marcando notificaciones como leídas',
@@ -144,11 +126,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       message: 'Notificación eliminada'
     });
   } catch (error) {
-    logger.error('Error eliminando notificación', {
-      error: error.message,
-      notificationId: req.params.id,
-      userId: req.user.id
-    });
+    console.error('Error eliminando notificación:', error.message);
     res.status(500).json({
       success: false,
       error: 'Error eliminando notificación',
@@ -164,26 +142,20 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.post('/test', authenticateToken, async (req, res) => {
   try {
     const usuario_id = req.user.id;
-    const io = req.app.get('io'); // Obtener instancia de Socket.io
+    const io = req.app.get('io');
     
     const { createNotification } = require('../services/notifications');
     
-    // Crear notificación de prueba
     const notification = await createNotification({
       usuario_id,
       tipo: 'participacion',
       titulo: '🔔 Notificación de Prueba',
-      mensaje: 'Esta es una notificación de prueba. El sistema de notificaciones en tiempo real está funcionando correctamente.',
+      mensaje: 'Esta es una notificación de prueba.',
       datos_adicionales: {
         test: true,
         timestamp: new Date().toISOString()
       },
-      io // Pasar Socket.io para emitir en tiempo real
-    });
-    
-    logger.info('Notificación de prueba enviada', {
-      userId: usuario_id,
-      notificationId: notification.id
+      io
     });
     
     res.json({
@@ -192,10 +164,7 @@ router.post('/test', authenticateToken, async (req, res) => {
       notification
     });
   } catch (error) {
-    logger.error('Error enviando notificación de prueba', {
-      error: error.message,
-      userId: req.user.id
-    });
+    console.error('Error enviando notificación de prueba:', error.message);
     res.status(500).json({
       success: false,
       error: 'Error enviando notificación de prueba',
@@ -205,4 +174,3 @@ router.post('/test', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-

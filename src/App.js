@@ -376,12 +376,7 @@ function AppWithRouter() {
                 <Link to="/rifas" className={`grana-nav-link ${location.pathname === '/rifas' ? 'active' : ''}`}>
                   <span>📋 Todas as Rifas</span>
                 </Link>
-                <Link to="/gestionar" className={`grana-nav-link ${location.pathname === '/gestionar' ? 'active' : ''}`}>
-                  <span>✨ Criar Rifa</span>
-                </Link>
-                <Link to="/participantes" className={`grana-nav-link ${location.pathname === '/participantes' ? 'active' : ''}`}>
-                  <span>👥 Participantes</span>
-                </Link>
+               
                 <Link to="/admin/reportes" className={`grana-nav-link ${location.pathname === '/admin/reportes' ? 'active' : ''}`}>
                   <span>📊 Relatórios</span>
                 </Link>

@@ -275,6 +275,8 @@ router.get('/', optionalAuth, async (req, res) => {
 // =====================================================
 router.get('/my', authenticateToken, async (req, res) => {
   try {
+    console.log('🔍 Usuario autenticado - ID:', req.user.id, 'Rol:', req.user.rol);
+    
     const result = await query(`
       SELECT *, 
         CASE 
@@ -286,7 +288,7 @@ router.get('/my', authenticateToken, async (req, res) => {
       FROM rifas 
       WHERE usuario_id = $1 AND deleted_at IS NULL
       ORDER BY fecha_creacion DESC
-    `, [req.user.userId]);
+    `, [req.user.id]);
 
     res.json({
       rifas: result.rows,
@@ -636,7 +638,7 @@ router.get('/:id', validateRifaId, optionalAuth, async (req, res) => {
 // =====================================================
 router.post('/', authenticateToken, sanitizeInput, validateRifa, async (req, res) => {
   try {
-    console.log('🔍 Creando rifa - Usuario:', req.user.userId, 'Rol:', req.user.rol);
+    console.log('🔍 Creando rifa - Usuario:', req.user.id, 'Rol:', req.user.rol);
     
     const {
       nombre,
@@ -676,7 +678,7 @@ router.post('/', authenticateToken, sanitizeInput, validateRifa, async (req, res
     const estadoInicial = req.user.rol === 'admin' ? 'aprobada' : 'pendiente';
     const activaInicial = req.user.rol === 'admin' ? true : false;
     
-    console.log(`📌 Creando rifa con ID: ${rifaId}, Estado: ${estadoInicial}`);
+    console.log(`📌 Creando rifa con ID: ${rifaId}, Estado: ${estadoInicial}, Activa: ${activaInicial}`);
 
     const rifaResult = await query(`
       INSERT INTO rifas (
@@ -684,19 +686,18 @@ router.post('/', authenticateToken, sanitizeInput, validateRifa, async (req, res
         cantidad_elementos, elementos_personalizados, reglas, es_privada,
         fecha_sorteo, plataforma_transmision, otra_plataforma, enlace_transmision,
         metodo_sorteo, testigos, pais, estado, ciudad, maneja_envio, alcance, categoria,
-        numero_ganador, resultado_publicado, activa, estado,
+        numero_ganador, resultado_publicado, activa,
         pix_key, aceita_cartao, loteria_tipo, numero_sorteio, video_url
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23,
-        NULL, false, $24, $25,
-        $26, $27, $28, $29, $30
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 
+        $18, $19, $20, $21, $22, $23, NULL, false, $24, $25, $26, $27, $28, $29
       ) RETURNING *
     `, [
-      rifaId, req.user.userId, nombre, descripcion, precio, fechaFin, tipo,
+      rifaId, req.user.id, nombre, descripcion, precio, fechaFin, tipo,
       cantidadElementos, JSON.stringify(elementosPersonalizados || []), reglas, esPrivada || false,
       fechaSorteo, plataformaTransmision, otraPlataforma, enlaceTransmision,
-      metodoSorteo, testigos, pais, estado, ciudad, manejaEnvio || false, alcance || 'local', categoria || null,
-      activaInicial, estadoInicial,
+      metodoSorteo, testigos, pais, estadoInicial, ciudad, manejaEnvio || false, alcance || 'local', categoria || null,
+      activaInicial,
       pixKey || null,
       aceitaCartao || false,
       loteriaTipo || null,
@@ -705,7 +706,7 @@ router.post('/', authenticateToken, sanitizeInput, validateRifa, async (req, res
     ]);
 
     const rifa = rifaResult.rows[0];
-    console.log(`✅ Rifa creada: ${rifa.id} - ${rifa.nombre} - Estado: ${rifa.estado}`);
+    console.log(`✅ Rifa creada: ${rifa.id} - ${rifa.nombre} - Estado: ${rifa.estado} - Activa: ${rifa.activa}`);
 
     // Insertar premios
     const premioIds = [];

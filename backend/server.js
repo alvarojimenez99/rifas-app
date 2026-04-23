@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const bcrypt =  require('bcryptjs');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const { testConnection, query } = require('./config/database');
@@ -30,18 +30,56 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // =====================================================
+// SERVIR ARCHIVOS ESTÁTICOS DE UPLOADS
+// =====================================================
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// =====================================================
 // FUNCIÓN PARA GENERAR TOKEN
 // =====================================================
 const generateToken = (userId, email, rol) => {
   return jwt.sign(
-    { userId, email, rol },
+    { id: userId, email, rol },  // ← Usa "id" en lugar de "userId"
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 };
 
 // =====================================================
-// RUTAS DE AUTENTICACIÓN (REALES)
+// MIDDLEWARE DE AUTENTICACIÓN (para usar en otras rutas)
+// =====================================================
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Token não fornecido' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = {
+      id: decoded.id,      // ← usar id
+      email: decoded.email,
+      rol: decoded.rol
+    };
+    next();
+  } catch (error) {
+    return res.status(403).json({ error: 'Token inválido' });
+  }
+};
+
+// Middleware requireAdmin
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.rol !== 'admin') {
+    return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
+  }
+  next();
+};
+
+// =====================================================
+// RUTAS DE AUTENTICACIÓN
 // =====================================================
 const routerAuth = express.Router();
 
@@ -54,7 +92,6 @@ routerAuth.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email e senha são obrigatórios' });
     }
     
-    // Buscar usuario en la base de datos
     const result = await query(
       'SELECT id, nombre, email, telefono, rol, password_hash FROM usuarios WHERE email = $1',
       [email]
@@ -65,18 +102,14 @@ routerAuth.post('/login', async (req, res) => {
     }
     
     const usuario = result.rows[0];
-    
-    // Verificar contraseña
     const passwordValida = await bcrypt.compare(password, usuario.password_hash);
     
     if (!passwordValida) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
     
-    // Generar token
     const token = generateToken(usuario.id, usuario.email, usuario.rol);
     
-    // Actualizar último acceso
     await query(
       'UPDATE usuarios SET ultimo_acesso = CURRENT_TIMESTAMP WHERE id = $1',
       [usuario.id]
@@ -109,17 +142,14 @@ routerAuth.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Nome, email e senha são obrigatórios' });
     }
     
-    // Verificar si el usuario ya existe
     const existe = await query('SELECT id FROM usuarios WHERE email = $1', [email]);
     if (existe.rows.length > 0) {
       return res.status(409).json({ error: 'Este email já está registrado' });
     }
     
-    // Hash de la contraseña
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
-    // Insertar usuario
     const result = await query(
       `INSERT INTO usuarios (nombre, email, telefono, password_hash, rol, created_at)
        VALUES ($1, $2, $3, $4, 'participante', CURRENT_TIMESTAMP)
@@ -128,8 +158,6 @@ routerAuth.post('/register', async (req, res) => {
     );
     
     const usuario = result.rows[0];
-    
-    // Generar token
     const token = generateToken(usuario.id, usuario.email, usuario.rol);
     
     res.status(201).json({
@@ -176,31 +204,20 @@ routerAuth.get('/me', async (req, res) => {
 app.use('/api/auth', routerAuth);
 
 // =====================================================
-// MIDDLEWARE DE AUTENTICACIÓN
-// =====================================================
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Token não fornecido' });
-  }
-  
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(403).json({ error: 'Token inválido' });
-  }
-};
-
-// =====================================================
 // RUTAS DE RIFAS
 // =====================================================
 const rifasRoutes = require('./routes/rifas');
 app.use('/api/rifas', rifasRoutes);
 
+// =====================================================
+// RUTAS DE ADMIN - Versión completa desde admin.js
+// =====================================================
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
+
+
+const notificationsRoutes = require('./routes/notifications');
+app.use('/api/notifications', notificationsRoutes);
 // =====================================================
 // RUTAS DE PARTICIPANTES
 // =====================================================
@@ -227,33 +244,6 @@ routerParticipantes.post('/:rifaId/confirmar-pago', authenticateToken, async (re
 });
 
 app.use('/api/participantes', routerParticipantes);
-
-// =====================================================
-// RUTAS DE ADMIN
-// =====================================================
-const routerAdmin = express.Router();
-
-routerAdmin.get('/rifas', authenticateToken, async (req, res) => {
-  try {
-    const result = await query('SELECT * FROM rifas ORDER BY fecha_creacion DESC');
-    res.json({ rifas: result.rows, total: result.rows.length });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener rifas' });
-  }
-});
-
-routerAdmin.put('/rifas/:id/activar', authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  const { activa } = req.body;
-  try {
-    await query('UPDATE rifas SET activa = $1 WHERE id = $2', [activa, id]);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al cambiar estado' });
-  }
-});
-
-app.use('/api/admin', routerAdmin);
 
 // =====================================================
 // RUTAS ADICIONALES
@@ -338,12 +328,13 @@ app.get('/', (req, res) => {
   res.json({ message: 'API de Peleleca - V7', status: 'running' });
 });
 
+// Manejo de rutas no encontradas
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint no encontrado', path: req.originalUrl });
 });
 
 // =====================================================
-// INICIAR
+// INICIAR SERVIDOR
 // =====================================================
 const startServer = async () => {
   try {
