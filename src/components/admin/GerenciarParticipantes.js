@@ -399,7 +399,7 @@ const GerenciarParticipantes = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .gerenciar-participantes {
           padding: 24px;
           max-width: 1400px;

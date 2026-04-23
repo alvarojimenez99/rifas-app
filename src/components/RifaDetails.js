@@ -426,7 +426,7 @@ const RifaDetails = () => {
         )}
       </div>
 
-      <style jsx>{`
+     <style>{`
         .rifa-details-container {
           padding: 24px;
           max-width: 1400px;

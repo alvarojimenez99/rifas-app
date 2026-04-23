@@ -111,7 +111,7 @@ const MinhasRifas = () => {
         ))}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .minhas-rifas {
           padding: 20px;
         }

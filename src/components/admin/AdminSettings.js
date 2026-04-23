@@ -170,7 +170,7 @@ const AdminSettings = () => {
         </button>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .admin-settings {
           padding: 24px;
           max-width: 1200px;

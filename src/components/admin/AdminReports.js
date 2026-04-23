@@ -284,7 +284,7 @@ const AdminReports = () => {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .admin-reports {
           padding: 24px;
           max-width: 1400px;

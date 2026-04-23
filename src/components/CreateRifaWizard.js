@@ -678,7 +678,7 @@ const CreateRifaWizard = ({ nuevaRifa, setNuevaRifa, tiposRifas, manejarCambioTi
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .create-rifa-wizard-modern {
           max-width: 1200px;
           margin: 0 auto;

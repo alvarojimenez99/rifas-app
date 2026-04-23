@@ -210,7 +210,7 @@ const MyPrizes = () => {
         </>
       )}
 
-      <style jsx>{`
+      <style>{`
         .my-prizes {
           max-width: 1200px;
           margin: 0 auto;
