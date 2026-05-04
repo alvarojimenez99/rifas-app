@@ -140,7 +140,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     clearError,
     isAuthenticated: !!user,
-    isAdmin: user?.rol === 'admin',
+    isAdmin: user?.rol === 'admin' || user?.role === 'admin',  // ← acepta rol y role
     isEmailVerified: user?.email_verificado || false
   };
 

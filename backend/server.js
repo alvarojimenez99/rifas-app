@@ -6,8 +6,8 @@ const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const { testConnection, query } = require('./config/database');
 
-console.log('🚀 SERVER V7 - CON SOCKET.IO');
-console.log('Node version:', process.version);
+console.log('🚀 SERVIDOR PELELECA - V7');
+console.log('Versão Node:', process.version);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
 
@@ -15,39 +15,62 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5001;
 
-// Socket.io
+// =====================================================
+// CONFIGURAÇÃO CORS - VERSÃO COMPLETA
+// =====================================================
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', '*');
+  res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// Middleware para evitar caché de CORS
+app.use((req, res, next) => {
+  res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.header('Pragma', 'no-cache');
+  res.header('Expires', '0');
+  next();
+});
+
+// Socket.io com CORS
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'https://peleleca.bet',
+    origin: ['https://peleleca.bet', 'https://www.peleleca.bet', 'http://localhost:3000'],
     methods: ['GET', 'POST'],
     credentials: true
   }
 });
 app.set('io', io);
 
-app.use(cors());
+// Middlewares
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // =====================================================
-// SERVIR ARCHIVOS ESTÁTICOS DE UPLOADS
+// ARQUIVOS ESTÁTICOS
 // =====================================================
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // =====================================================
-// FUNCIÓN PARA GENERAR TOKEN
+// FUNÇÃO PARA GERAR TOKEN
 // =====================================================
 const generateToken = (userId, email, rol) => {
   return jwt.sign(
-    { id: userId, email, rol },  // ← Usa "id" en lugar de "userId"
+    { id: userId, email, rol },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 };
 
 // =====================================================
-// MIDDLEWARE DE AUTENTICACIÓN (para usar en otras rutas)
+// MIDDLEWARE DE AUTENTICAÇÃO
 // =====================================================
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -60,7 +83,7 @@ const authenticateToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = {
-      id: decoded.id,      // ← usar id
+      id: decoded.id,
       email: decoded.email,
       rol: decoded.rol
     };
@@ -70,7 +93,7 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-// Middleware requireAdmin
+// Middleware para admin
 const requireAdmin = (req, res, next) => {
   if (!req.user || req.user.rol !== 'admin') {
     return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
@@ -79,7 +102,7 @@ const requireAdmin = (req, res, next) => {
 };
 
 // =====================================================
-// RUTAS DE AUTENTICACIÓN
+// ROTAS DE AUTENTICAÇÃO
 // =====================================================
 const routerAuth = express.Router();
 
@@ -120,15 +143,15 @@ routerAuth.post('/login', async (req, res) => {
       token,
       user: {
         id: usuario.id,
-        nombre: usuario.nombre,
+        nome: usuario.nombre,
         email: usuario.email,
-        telefono: usuario.telefono,
-        rol: usuario.rol
+        telefone: usuario.telefono,
+        role: usuario.rol
       }
     });
     
   } catch (error) {
-    console.error('Erro no login:', error);
+    console.error('❌ Erro no login:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -136,9 +159,9 @@ routerAuth.post('/login', async (req, res) => {
 // POST /api/auth/register
 routerAuth.post('/register', async (req, res) => {
   try {
-    const { nombre, email, password, telefono } = req.body;
+    const { nome, email, senha, telefone } = req.body;
     
-    if (!nombre || !email || !password) {
+    if (!nome || !email || !senha) {
       return res.status(400).json({ error: 'Nome, email e senha são obrigatórios' });
     }
     
@@ -148,13 +171,13 @@ routerAuth.post('/register', async (req, res) => {
     }
     
     const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    const passwordHash = await bcrypt.hash(senha, saltRounds);
     
     const result = await query(
       `INSERT INTO usuarios (nombre, email, telefono, password_hash, rol, created_at)
        VALUES ($1, $2, $3, $4, 'participante', CURRENT_TIMESTAMP)
        RETURNING id, nombre, email, telefono, rol`,
-      [nombre, email, telefono || null, passwordHash]
+      [nome, email, telefone || null, passwordHash]
     );
     
     const usuario = result.rows[0];
@@ -163,11 +186,17 @@ routerAuth.post('/register', async (req, res) => {
     res.status(201).json({
       success: true,
       token,
-      user: usuario
+      user: {
+        id: usuario.id,
+        nome: usuario.nombre,
+        email: usuario.email,
+        telefone: usuario.telefono,
+        role: usuario.rol
+      }
     });
     
   } catch (error) {
-    console.error('Erro no registro:', error);
+    console.error('❌ Erro no registro:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -182,7 +211,7 @@ routerAuth.get('/me', async (req, res) => {
     }
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
+    const userId = decoded.id;
     
     const result = await query(
       'SELECT id, nombre, email, telefono, rol FROM usuarios WHERE id = $1',
@@ -196,7 +225,7 @@ routerAuth.get('/me', async (req, res) => {
     res.json({ user: result.rows[0] });
     
   } catch (error) {
-    console.error('Erro no /me:', error);
+    console.error('❌ Erro no /me:', error);
     res.status(401).json({ error: 'Token inválido' });
   }
 });
@@ -204,49 +233,61 @@ routerAuth.get('/me', async (req, res) => {
 app.use('/api/auth', routerAuth);
 
 // =====================================================
-// RUTAS DE RIFAS
+// ROTAS DE RIFAS
 // =====================================================
 const rifasRoutes = require('./routes/rifas');
 app.use('/api/rifas', rifasRoutes);
 
 // =====================================================
-// RUTAS DE ADMIN - Versión completa desde admin.js
+// ROTAS DE ADMIN
 // =====================================================
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
 
-
+// =====================================================
+// ROTAS DE NOTIFICAÇÕES
+// =====================================================
 const notificationsRoutes = require('./routes/notifications');
 app.use('/api/notifications', notificationsRoutes);
+
 // =====================================================
-// RUTAS DE PARTICIPANTES
+// ROTAS DE PARTICIPANTES
 // =====================================================
 const routerParticipantes = express.Router();
 
 routerParticipantes.get('/:rifaId', async (req, res) => {
   try {
-    const result = await query('SELECT * FROM participantes WHERE rifa_id = $1 ORDER BY fecha_participacion DESC', [req.params.rifaId]);
+    const result = await query(
+      'SELECT * FROM participantes WHERE rifa_id = $1 ORDER BY fecha_participacion DESC',
+      [req.params.rifaId]
+    );
     res.json({ participantes: result.rows, total: result.rows.length });
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener participantes' });
+    console.error('❌ Erro ao obter participantes:', error);
+    res.status(500).json({ error: 'Erro ao obter participantes' });
   }
 });
 
 routerParticipantes.post('/:rifaId/confirmar-pago', authenticateToken, async (req, res) => {
   try {
     const { rifaId } = req.params;
-    const { numerosSeleccionados, total, metodoPago } = req.body;
-    console.log('✅ Pago confirmado:', { rifaId, numerosSeleccionados, total, metodoPago });
-    res.json({ success: true, message: 'Pago confirmado', participante: { id: Date.now(), numeros: numerosSeleccionados, total } });
+    const { numerosSelecionados, total, metodoPagamento } = req.body;
+    console.log('✅ Pagamento confirmado:', { rifaId, numerosSelecionados, total, metodoPagamento });
+    res.json({ 
+      success: true, 
+      message: 'Pagamento confirmado', 
+      participante: { id: Date.now(), numeros: numerosSelecionados, total } 
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al confirmar pago' });
+    console.error('❌ Erro ao confirmar pagamento:', error);
+    res.status(500).json({ error: 'Erro ao confirmar pagamento' });
   }
 });
 
 app.use('/api/participantes', routerParticipantes);
 
 // =====================================================
-// RUTAS ADICIONALES
+// ROTAS ADICIONAIS
 // =====================================================
 const catalogosRoutes = require('./routes/catalogos');
 const uploadRoutes = require('./routes/upload');
@@ -259,14 +300,14 @@ app.use('/api/stripe', stripeRoutes);
 app.use('/api/verify', verifyRoutes);
 
 // =====================================================
-// RUTAS DE PAGOS
+// ROTAS DE PAGAMENTOS
 // =====================================================
 const routerPayments = express.Router();
 
 routerPayments.post('/pix/create', async (req, res) => {
   try {
-    const { rifaId, numerosSeleccionados, total, email, nome } = req.body;
-    console.log('📦 PIX Request:', { rifaId, numerosSeleccionados, total, email, nome });
+    const { rifaId, numerosSelecionados, total, email, nome } = req.body;
+    console.log('📦 Requisição PIX:', { rifaId, numerosSelecionados, total, email, nome });
     res.json({
       success: true,
       qrCode: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -275,34 +316,36 @@ routerPayments.post('/pix/create', async (req, res) => {
       expiresIn: 1800
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear pago PIX' });
+    console.error('❌ Erro ao criar pagamento PIX:', error);
+    res.status(500).json({ error: 'Erro ao criar pagamento PIX' });
   }
 });
 
 routerPayments.post('/card/create-intent', async (req, res) => {
   try {
-    const { rifaId, numerosSeleccionados, total, email, nome } = req.body;
-    console.log('💳 Stripe Request:', { rifaId, numerosSeleccionados, total, email, nome });
+    const { rifaId, numerosSelecionados, total, email, nome } = req.body;
+    console.log('💳 Requisição Stripe:', { rifaId, numerosSelecionados, total, email, nome });
     res.json({
       clientSecret: 'pi_mock_' + Date.now() + '_secret_mock',
       paymentIntentId: 'pi_mock_' + Date.now()
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear pago con tarjeta' });
+    console.error('❌ Erro ao criar pagamento com cartão:', error);
+    res.status(500).json({ error: 'Erro ao criar pagamento com cartão' });
   }
 });
 
 app.use('/api/payments', routerPayments);
 
 // =====================================================
-// SOCKET.IO CONNECTION
+// SOCKET.IO
 // =====================================================
 io.use((socket, next) => {
   const token = socket.handshake.auth.token || socket.handshake.headers.token;
-  if (!token) return next(new Error('Token no proporcionado'));
+  if (!token) return next(new Error('Token não fornecido'));
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = decoded.userId;
+    socket.userId = decoded.id;
     next();
   } catch (error) {
     next(new Error('Token inválido'));
@@ -310,27 +353,50 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('Cliente conectado a Socket.io', { userId: socket.userId });
+  console.log('✅ Cliente conectado ao Socket.io', { userId: socket.userId });
   if (socket.userId) socket.join(`user:${socket.userId}`);
   socket.on('disconnect', () => {
-    console.log('Cliente desconectado de Socket.io', { userId: socket.userId });
+    console.log('❌ Cliente desconectado do Socket.io', { userId: socket.userId });
   });
 });
 
 // =====================================================
-// HEALTH
+// HEALTH CHECK
 // =====================================================
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Servidor funcionando - V7', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    message: 'Servidor funcionando - Peleleca V7',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 app.get('/', (req, res) => {
-  res.json({ message: 'API de Peleleca - V7', status: 'running' });
+  res.json({ 
+    message: 'API Peleleca - Plataforma de Rifas Online',
+    version: '7.0.0',
+    status: 'running',
+    endpoints: {
+      auth: '/api/auth',
+      rifas: '/api/rifas',
+      participantes: '/api/participantes',
+      payments: '/api/payments',
+      admin: '/api/admin',
+      health: '/api/health'
+    }
+  });
 });
 
-// Manejo de rutas no encontradas
+// =====================================================
+// TRATAMENTO DE ROTAS NÃO ENCONTRADAS
+// =====================================================
 app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint no encontrado', path: req.originalUrl });
+  res.status(404).json({ 
+    error: 'Endpoint não encontrado', 
+    path: req.originalUrl,
+    message: `A rota ${req.method} ${req.originalUrl} não existe`
+  });
 });
 
 // =====================================================
@@ -338,22 +404,27 @@ app.use((req, res) => {
 // =====================================================
 const startServer = async () => {
   try {
-    console.log('📍 Conectando a BD...');
+    console.log('📍 Conectando ao banco de dados...');
     await testConnection();
-    console.log('✅ BD conectada');
+    console.log('✅ Banco de dados conectado com sucesso');
 
     server.listen(PORT, () => {
-      console.log(`✅ Servidor iniciado en puerto ${PORT}`);
-      console.log(`📦 Versión: V7 - CON SOCKET.IO`);
+      console.log(`✅ Servidor iniciado na porta ${PORT}`);
+      console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📦 Versão: Peleleca V7`);
+      console.log(`🔌 Socket.io pronto para conexões`);
     });
 
     server.on('error', (error) => {
-      console.error('❌ Error:', error.message);
-      process.exit(1);
+      console.error('❌ Erro no servidor:', error.message);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`⚠️ A porta ${PORT} já está em uso`);
+        process.exit(1);
+      }
     });
 
   } catch (error) {
-    console.error('❌ Error crítico:', error.message);
+    console.error('❌ Erro crítico ao iniciar servidor:', error.message);
     process.exit(1);
   }
 };

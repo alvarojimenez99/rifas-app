@@ -14,19 +14,15 @@ const {
   getAccountStatus,
   saveTransaction
 } = require('../services/stripe');
-const logger = require('../config/logger');
+
 const { notifyPaymentConfirmed } = require('../services/notifications');
 
 // POST /api/stripe/connect/create-account
-// Creador solicita conectar su cuenta Stripe
 router.post('/connect/create-account', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const userId = req.user.id;
     const userEmail = req.user.email;
     
-    logger.info('Creando cuenta Stripe Connect', { userId, email: userEmail });
-    
-    // Verificar si ya tiene cuenta
     const existing = await query(
       'SELECT * FROM stripe_connect_accounts WHERE user_id = $1',
       [userId]
@@ -35,11 +31,9 @@ router.post('/connect/create-account', authenticateToken, requireAdmin, async (r
     if (existing.rows.length > 0) {
       const account = existing.rows[0];
       
-      // Verificar estado actual de la cuenta
       try {
         const accountStatus = await getAccountStatus(account.stripe_account_id);
         
-        // Actualizar estado en BD
         await query(`
           UPDATE stripe_connect_accounts
           SET 
@@ -63,10 +57,9 @@ router.post('/connect/create-account', authenticateToken, requireAdmin, async (r
           });
         }
       } catch (error) {
-        logger.warn('Error verificando cuenta existente, creando nuevo link', { error: error.message });
+        console.error('Error verificando cuenta:', error.message);
       }
       
-      // Crear nuevo link de onboarding si no está completa
       const accountLink = await createAccountLink(
         account.stripe_account_id,
         `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?stripe=success`,
@@ -80,19 +73,14 @@ router.post('/connect/create-account', authenticateToken, requireAdmin, async (r
       });
     }
     
-    // Crear nueva cuenta Express
     const account = await createConnectAccount(userId, userEmail, 'MX');
     
-    logger.info('Cuenta Stripe creada', { userId, accountId: account.id });
-    
-    // Guardar en BD
     await query(`
       INSERT INTO stripe_connect_accounts 
       (user_id, stripe_account_id, account_type, email, country)
       VALUES ($1, $2, 'express', $3, 'MX')
     `, [userId, account.id, userEmail]);
     
-    // Crear link de onboarding
     const accountLink = await createAccountLink(
       account.id,
       `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?stripe=success`,
@@ -107,7 +95,7 @@ router.post('/connect/create-account', authenticateToken, requireAdmin, async (r
     });
     
   } catch (error) {
-    logger.error('Error creando cuenta Stripe', { error: error.message, stack: error.stack });
+    console.error('Error creando cuenta Stripe:', error.message);
     res.status(500).json({ 
       error: 'Error al crear cuenta Stripe',
       message: error.message 
@@ -116,7 +104,6 @@ router.post('/connect/create-account', authenticateToken, requireAdmin, async (r
 });
 
 // GET /api/stripe/connect/status/:userId
-// Verificar estado de cuenta Stripe de un creador (público para verificar disponibilidad)
 router.get('/connect/status/:userId', optionalAuth, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId);
@@ -144,11 +131,9 @@ router.get('/connect/status/:userId', optionalAuth, async (req, res) => {
     
     const account = result.rows[0];
     
-    // Verificar estado actual en Stripe
     try {
       const accountStatus = await getAccountStatus(account.stripe_account_id);
       
-      // Actualizar en BD
       await query(`
         UPDATE stripe_connect_accounts
         SET 
@@ -171,8 +156,7 @@ router.get('/connect/status/:userId', optionalAuth, async (req, res) => {
         payoutsEnabled: accountStatus.payoutsEnabled
       });
     } catch (error) {
-      logger.error('Error verificando estado de cuenta Stripe', { error: error.message });
-      // Retornar datos de BD si falla la verificación
+      console.error('Error verificando estado:', error.message);
       res.json({
         connected: account.charges_enabled && account.payouts_enabled,
         available: account.charges_enabled && account.payouts_enabled,
@@ -182,13 +166,12 @@ router.get('/connect/status/:userId', optionalAuth, async (req, res) => {
     }
     
   } catch (error) {
-    logger.error('Error verificando cuenta Stripe', { error: error.message });
+    console.error('Error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
 // GET /api/stripe/connect/status
-// Verificar estado de cuenta Stripe (para el usuario autenticado)
 router.get('/connect/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -214,11 +197,9 @@ router.get('/connect/status', authenticateToken, requireAdmin, async (req, res) 
     
     const account = result.rows[0];
     
-    // Verificar estado actual en Stripe
     try {
       const accountStatus = await getAccountStatus(account.stripe_account_id);
       
-      // Actualizar en BD
       await query(`
         UPDATE stripe_connect_accounts
         SET 
@@ -244,8 +225,7 @@ router.get('/connect/status', authenticateToken, requireAdmin, async (req, res) 
         country: accountStatus.country
       });
     } catch (error) {
-      logger.error('Error verificando estado de cuenta Stripe', { error: error.message });
-      // Retornar datos de BD si falla la verificación
+      console.error('Error verificando estado:', error.message);
       res.json({
         connected: account.charges_enabled && account.payouts_enabled,
         chargesEnabled: account.charges_enabled,
@@ -258,13 +238,12 @@ router.get('/connect/status', authenticateToken, requireAdmin, async (req, res) 
     }
     
   } catch (error) {
-    logger.error('Error verificando cuenta Stripe', { error: error.message });
+    console.error('Error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
 // GET /api/stripe/connect/login-link
-// Obtener link para acceder al dashboard de Stripe del creador
 router.get('/connect/login-link', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -288,26 +267,21 @@ router.get('/connect/login-link', authenticateToken, requireAdmin, async (req, r
     });
     
   } catch (error) {
-    logger.error('Error creando login link', { error: error.message });
+    console.error('Error creando login link:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
 // POST /api/stripe/payment-intent
-// Crear Payment Intent para participar en rifa
 router.post('/payment-intent', optionalAuth, async (req, res) => {
   try {
     const { rifaId, amount, currency = 'mxn', numerosSeleccionados, paymentMethod = 'card', participanteId: participanteIdFromBody } = req.body;
-    // Priorizar participanteId del body (si viene del frontend) sobre el del usuario autenticado
     const participanteId = participanteIdFromBody || req.user?.id || null;
     
     if (!rifaId || !amount) {
       return res.status(400).json({ error: 'rifaId y amount son requeridos' });
     }
     
-    logger.info('Creando Payment Intent', { rifaId, amount, currency, participanteId });
-    
-    // Obtener creador de la rifa
     const rifaResult = await query(`
       SELECT usuario_id, precio, nombre
       FROM rifas
@@ -322,28 +296,19 @@ router.post('/payment-intent', optionalAuth, async (req, res) => {
     const precioRifa = parseFloat(rifaResult.rows[0].precio);
     const rifaNombre = rifaResult.rows[0].nombre;
     
-    // Calcular monto total
     const cantidadNumeros = numerosSeleccionados?.length || 1;
     const totalAmount = precioRifa * cantidadNumeros;
     
-    // Verificar que el creador tenga cuenta de Stripe Connect configurada
     const stripeAccountResult = await query(`
       SELECT stripe_account_id, charges_enabled, payouts_enabled
       FROM stripe_connect_accounts
       WHERE user_id = $1
     `, [creadorId]);
     
-    // Si no tiene cuenta Stripe Connect, usar la cuenta principal de SorteoHub
-    // (esto permite que rifas funcionen incluso si el creador no tiene Stripe configurado)
     const hasStripeConnect = stripeAccountResult.rows.length > 0 && 
                             stripeAccountResult.rows[0].charges_enabled && 
                             stripeAccountResult.rows[0].payouts_enabled;
     
-    if (!hasStripeConnect) {
-      logger.info('Creador sin Stripe Connect, usando cuenta principal de SorteoHub', { creadorId });
-    }
-    
-    // Crear Payment Intent según método de pago
     let paymentIntentResult;
     if (paymentMethod === 'oxxo') {
       paymentIntentResult = await createOXXOPaymentIntent(
@@ -373,33 +338,26 @@ router.post('/payment-intent', optionalAuth, async (req, res) => {
     
     const { paymentIntent, commission, commissionPct, amountToCreator } = paymentIntentResult;
     
-    // Guardar transacción en BD
     try {
-      // Guardar transacción (sin accountId ya que no usamos Connect)
-      try {
-        await saveTransaction({
-          rifaId,
-          participanteId,
-          creadorId,
-          paymentIntentId: paymentIntent.id,
-          accountId: 'sorteohub_main', // Cuenta principal de SorteoHub
-          amount: totalAmount,
-          currency: currency.toUpperCase(),
-          commissionAmount: commission,
-          commissionPct,
-          amountToCreator,
-          status: 'pending',
-          metadata: {
-            numeros: numerosSeleccionados,
-            rifa_nombre: rifaNombre
-          }
-        });
-      } catch (error) {
-        logger.warn('Error guardando transacción en BD', { error: error.message });
-      }
+      await saveTransaction({
+        rifaId,
+        participanteId,
+        creadorId,
+        paymentIntentId: paymentIntent.id,
+        accountId: 'sorteohub_main',
+        amount: totalAmount,
+        currency: currency.toUpperCase(),
+        commissionAmount: commission,
+        commissionPct,
+        amountToCreator,
+        status: 'pending',
+        metadata: {
+          numeros: numerosSeleccionados,
+          rifa_nombre: rifaNombre
+        }
+      });
     } catch (error) {
-      logger.warn('Error guardando transacción en BD', { error: error.message });
-      // Continuar aunque falle guardar en BD
+      console.error('Error guardando transacción:', error.message);
     }
     
     res.json({
@@ -414,7 +372,7 @@ router.post('/payment-intent', optionalAuth, async (req, res) => {
     });
     
   } catch (error) {
-    logger.error('Error creando Payment Intent', { error: error.message, stack: error.stack });
+    console.error('Error creando Payment Intent:', error.message);
     res.status(500).json({ 
       error: 'Error al crear intención de pago',
       message: error.message 
@@ -423,7 +381,6 @@ router.post('/payment-intent', optionalAuth, async (req, res) => {
 });
 
 // POST /api/stripe/credit-payment-intent
-// Crear Payment Intent para cargar créditos de anunciantes
 router.post('/credit-payment-intent', async (req, res) => {
   try {
     const { amount, currency = 'mxn' } = req.body;
@@ -437,20 +394,15 @@ router.post('/credit-payment-intent', async (req, res) => {
       return res.status(400).json({ error: 'Monto inválido. Debe ser mayor a $0' });
     }
     
-    // Validar monto mínimo de Stripe ($10 MXN)
     const MIN_AMOUNT = 10.00;
     const amountNum = parseFloat(amount);
     if (amountNum < MIN_AMOUNT) {
       return res.status(400).json({ 
-        error: `El monto mínimo para cargar créditos es $${MIN_AMOUNT.toFixed(2)} MXN (requerido por Stripe)`,
+        error: `El monto mínimo para cargar créditos es $${MIN_AMOUNT.toFixed(2)} MXN`,
         minAmount: MIN_AMOUNT
       });
     }
     
-    // Usar middleware de autenticación de anunciantes
-    const { authenticateAdvertiser } = require('../middleware/advertiserAuth');
-    
-    // Middleware temporal para obtener advertiserId
     let advertiserId;
     try {
       const authHeader = req.headers.authorization;
@@ -469,9 +421,6 @@ router.post('/credit-payment-intent', async (req, res) => {
       return res.status(401).json({ error: 'Token inválido' });
     }
     
-    logger.info('Creando Payment Intent para créditos', { advertiserId, amount: amountNum, currency });
-    
-    // Crear Payment Intent
     const result = await createCreditPaymentIntent(amountNum, currency, advertiserId, {
       descripcion: `Carga de crédito desde dashboard`
     });
@@ -484,7 +433,7 @@ router.post('/credit-payment-intent', async (req, res) => {
     });
     
   } catch (error) {
-    logger.error('Error creando Payment Intent para créditos', { error: error.message, stack: error.stack });
+    console.error('Error creando Payment Intent para créditos:', error.message);
     res.status(500).json({ 
       error: 'Error al crear intención de pago',
       message: error.message 
@@ -493,7 +442,6 @@ router.post('/credit-payment-intent', async (req, res) => {
 });
 
 // POST /api/stripe/confirm-payment
-// Confirmar pago y procesar inmediatamente (llamado desde frontend)
 router.post('/confirm-payment', optionalAuth, async (req, res) => {
   try {
     const { paymentIntentId, participanteId, rifaId } = req.body;
@@ -504,18 +452,11 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
       });
     }
     
-    logger.info('Confirmando pago desde frontend', { 
-      paymentIntentId, 
-      participanteId, 
-      rifaId 
-    });
-    
-    // Verificar que el Payment Intent existe y está succeeded
     let paymentIntent;
     try {
       paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     } catch (stripeError) {
-      logger.error('Error recuperando Payment Intent', { error: stripeError.message });
+      console.error('Error recuperando Payment Intent:', stripeError.message);
       return res.status(400).json({ error: 'Payment Intent no encontrado' });
     }
     
@@ -525,7 +466,6 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
       });
     }
     
-    // Verificar que el participante existe y está pendiente
     const participanteResult = await query(
       'SELECT * FROM participantes WHERE id = $1 AND rifa_id = $2 AND estado = $3',
       [participanteId, rifaId, 'pendiente']
@@ -540,7 +480,6 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
     const participante = participanteResult.rows[0];
     const numerosArray = participante.numeros_seleccionados || [];
     
-    // Obtener información de la rifa
     const rifaResult = await query(
       'SELECT usuario_id, precio, nombre FROM rifas WHERE id = $1',
       [rifaId]
@@ -553,26 +492,22 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
     const rifa = rifaResult.rows[0];
     const total = (parseFloat(rifa.precio) * numerosArray.length).toFixed(2);
     
-    // Iniciar transacción para actualizar estado
     const { getClient } = require('../config/database');
     const client = await getClient();
     await client.query('BEGIN');
     
     try {
-      // 1. Actualizar participante a confirmado
       await client.query(`
         UPDATE participantes 
         SET estado = 'confirmado', fecha_confirmacion = CURRENT_TIMESTAMP
         WHERE id = $1
       `, [participanteId]);
       
-      // 2. Obtener elementos reservados
       const elementosReservados = await client.query(`
         SELECT elemento FROM elementos_reservados 
         WHERE participante_id = $1 AND rifa_id = $2 AND activo = true
       `, [participanteId, rifaId]);
       
-      // 3. Mover elementos de reservados a vendidos
       for (const row of elementosReservados.rows) {
         await client.query(`
           INSERT INTO elementos_vendidos (rifa_id, participante_id, elemento, fecha_venta)
@@ -581,7 +516,6 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
         `, [rifaId, participanteId, row.elemento]);
       }
       
-      // 4. Marcar elementos reservados como inactivos
       await client.query(`
         UPDATE elementos_reservados 
         SET activo = false 
@@ -590,13 +524,6 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
       
       await client.query('COMMIT');
       
-      logger.info('Pago confirmado y procesado exitosamente desde frontend', {
-        participanteId,
-        rifaId,
-        numeros: numerosArray
-      });
-      
-      // 5. Enviar email de confirmación de pago
       try {
         const emailService = require('../config/email');
         await emailService.sendPaymentValidated(
@@ -611,23 +538,11 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
             nombre: rifa.nombre
           }
         );
-        logger.info('Email de pago validado enviado al participante');
       } catch (emailError) {
-        logger.error('Error enviando email de pago validado', {
-          error: emailError.message,
-          participanteId,
-          rifaId
-        });
+        console.error('Error enviando email:', emailError.message);
       }
       
-      // 6. Notificar al creador sobre el pago confirmado
       const io = req.app.get('io');
-      logger.info('Intentando enviar notificación', {
-        creadorId: rifa.usuario_id,
-        participanteId,
-        rifaId,
-        ioAvailable: !!io
-      });
       
       try {
         await notifyPaymentConfirmed(
@@ -640,17 +555,8 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
           rifa.usuario_id,
           io
         );
-        logger.info('✅ Notificación de pago enviada al creador', {
-          creadorId: rifa.usuario_id
-        });
       } catch (notifError) {
-        logger.error('❌ Error enviando notificación de pago', {
-          error: notifError.message,
-          stack: notifError.stack,
-          participanteId,
-          rifaId,
-          creadorId: rifa.usuario_id
-        });
+        console.error('Error enviando notificación:', notifError.message);
       }
       
       res.json({
@@ -666,18 +572,14 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
       
     } catch (error) {
       await client.query('ROLLBACK');
-      logger.error('Error procesando pago desde frontend', {
-        error: error.message,
-        participanteId,
-        rifaId
-      });
+      console.error('Error procesando pago:', error.message);
       throw error;
     } finally {
       client.release();
     }
     
   } catch (error) {
-    logger.error('Error confirmando pago', { error: error.message });
+    console.error('Error confirmando pago:', error.message);
     res.status(500).json({ 
       error: 'Error procesando confirmación de pago',
       message: error.message 
@@ -686,13 +588,12 @@ router.post('/confirm-payment', optionalAuth, async (req, res) => {
 });
 
 // POST /api/stripe/webhook
-// Webhook para eventos de Stripe
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
   if (!webhookSecret) {
-    logger.warn('STRIPE_WEBHOOK_SECRET no configurado, ignorando webhook');
+    console.warn('STRIPE_WEBHOOK_SECRET no configurado, ignorando webhook');
     return res.status(400).send('Webhook secret no configurado');
   }
   
@@ -701,17 +602,15 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    logger.error('Webhook signature verification failed', { error: err.message });
+    console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
   
-  logger.info('Webhook recibido', { type: event.type, id: event.id });
+  console.log('Webhook recibido:', { type: event.type, id: event.id });
   
-  // Manejar eventos
   try {
     switch (event.type) {
       case 'payment_intent.succeeded':
-        // Pasar instancia de Socket.io al handler
         const io = req.app.get('io');
         await handlePaymentSuccess(event.data.object, io);
         break;
@@ -725,12 +624,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         break;
         
       default:
-        logger.info(`Evento no manejado: ${event.type}`);
+        console.log('Evento no manejado:', event.type);
     }
     
     res.json({ received: true });
   } catch (error) {
-    logger.error('Error procesando webhook', { error: error.message, type: event.type });
+    console.error('Error procesando webhook:', error.message);
     res.status(500).json({ error: 'Error procesando webhook' });
   }
 });
@@ -740,22 +639,17 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
   try {
     const { rifa_id, participante_id, numeros, creador_id, tipo, advertiser_id } = paymentIntent.metadata;
     
-    logger.info('Pago exitoso', { 
+    console.log('Pago exitoso:', { 
       paymentIntentId: paymentIntent.id,
       rifaId: rifa_id,
       participanteId: participante_id,
-      tipo: tipo,
-      advertiserId: advertiser_id
+      tipo: tipo
     });
     
-    // Si es una carga de crédito de anunciante
     if (tipo === 'credit_load' && advertiser_id) {
-      const amount = paymentIntent.amount / 100; // Convertir de centavos a dólares
+      const amount = paymentIntent.amount / 100;
       const advertiserId = parseInt(advertiser_id);
       
-      logger.info('Procesando carga de crédito', { advertiserId, amount });
-      
-      // Actualizar crédito del anunciante
       const result = await query(
         `UPDATE anunciantes 
          SET credito_actual = credito_actual + $1,
@@ -766,41 +660,23 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
       );
       
       if (result.rows.length === 0) {
-        logger.error('Anunciante no encontrado para carga de crédito', { advertiserId });
+        console.error('Anunciante no encontrado:', advertiserId);
         return;
       }
       
-      // Registrar transacción de carga
       await query(
         `INSERT INTO advertiser_credit_transactions (anunciante_id, monto, tipo, descripcion, referencia_pago)
          VALUES ($1, $2, 'carga', $3, $4)`,
-        [
-          advertiserId,
-          amount,
-          `Carga de crédito de $${amount.toFixed(2)} vía Stripe`,
-          paymentIntent.id
-        ]
+        [advertiserId, amount, `Carga de crédito vía Stripe`, paymentIntent.id]
       );
       
-      // Reactivar anuncios que estuvieron pausados por falta de crédito
-      await query(
-        `UPDATE anuncios 
-         SET activo = true 
-         WHERE anunciante_id = $1 
-           AND activo = false 
-           AND presupuesto_mensual > 0`,
-        [advertiserId]
-      );
-      
-      logger.info('Crédito cargado exitosamente', { advertiserId, amount });
-      return; // Salir temprano, no procesar como pago de rifa
+      console.log('Crédito cargado exitosamente:', { advertiserId, amount });
+      return;
     }
     
-    // Procesamiento normal de pago de rifa
     const rifaId = rifa_id;
     const participanteId = participante_id;
     
-    // Actualizar transacción en BD
     await query(`
       UPDATE stripe_transactions
       SET 
@@ -809,30 +685,18 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
         updated_at = CURRENT_TIMESTAMP
       WHERE stripe_payment_intent_id = $2
     `, [
-      paymentIntent.charges?.data[0]?.balance_transaction?.fee 
-        ? paymentIntent.charges.data[0].balance_transaction.fee / 100 
-        : null,
+      paymentIntent.charges?.data[0]?.balance_transaction?.fee / 100 || null,
       paymentIntent.id
     ]);
     
-    // Si hay participante_id, auto-registrar participación (mover de reservado a vendido)
     if (participanteId && participanteId !== 'guest' && rifaId) {
       const numerosArray = numeros ? numeros.split(',').map(n => n.trim()) : [];
       
-      logger.info('Auto-registrando participación desde webhook Stripe', {
-        participanteId: participante_id,
-        rifaId: rifa_id,
-        numeros: numerosArray
-      });
-      
-      // Obtener información del participante y rifa
-      // Buscar primero por ID y estado pendiente
       let participanteResult = await query(
         'SELECT * FROM participantes WHERE id = $1 AND rifa_id = $2 AND estado = $3',
         [participanteId, rifaId, 'pendiente']
       );
       
-      // Si no se encuentra pendiente, verificar si ya fue procesado (confirmado)
       if (participanteResult.rows.length === 0) {
         const yaProcesado = await query(
           'SELECT * FROM participantes WHERE id = $1 AND rifa_id = $2 AND estado = $3',
@@ -840,12 +704,8 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
         );
         
         if (yaProcesado.rows.length > 0) {
-          logger.info('Participante ya procesado desde frontend, webhook ignorado', {
-            participanteId,
-            rifaId,
-            paymentIntentId: paymentIntent.id
-          });
-          return; // Ya fue procesado, no hacer nada
+          console.log('Participante ya procesado, webhook ignorado');
+          return;
         }
       }
       
@@ -859,26 +719,22 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
         const rifa = rifaResult.rows[0];
         const total = (parseFloat(rifa.precio) * numerosArray.length).toFixed(2);
         
-        // Iniciar transacción para actualizar estado
         const { getClient } = require('../config/database');
         const client = await getClient();
         await client.query('BEGIN');
         
         try {
-          // 1. Actualizar participante a confirmado
           await client.query(`
             UPDATE participantes 
             SET estado = 'confirmado', fecha_confirmacion = CURRENT_TIMESTAMP
             WHERE id = $1
           `, [participanteId]);
           
-          // 2. Obtener elementos reservados
           const elementosReservados = await client.query(`
             SELECT elemento FROM elementos_reservados 
             WHERE participante_id = $1 AND rifa_id = $2 AND activo = true
           `, [participanteId, rifaId]);
           
-          // 3. Mover elementos de reservados a vendidos
           for (const row of elementosReservados.rows) {
             await client.query(`
               INSERT INTO elementos_vendidos (rifa_id, participante_id, elemento, fecha_venta)
@@ -887,7 +743,6 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
             `, [rifaId, participanteId, row.elemento]);
           }
           
-          // 4. Marcar elementos reservados como inactivos
           await client.query(`
             UPDATE elementos_reservados 
             SET activo = false 
@@ -896,13 +751,6 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
           
           await client.query('COMMIT');
           
-          logger.info('Participación auto-registrada exitosamente desde webhook', {
-            participanteId,
-            rifaId,
-            numeros: numerosArray
-          });
-          
-          // 5. Enviar email de confirmación de pago
           try {
             const emailService = require('../config/email');
             await emailService.sendPaymentValidated(
@@ -917,17 +765,10 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
                 nombre: rifa.nombre
               }
             );
-            logger.info('Email de pago validado enviado al participante');
           } catch (emailError) {
-            logger.error('Error enviando email de pago validado', {
-              error: emailError.message,
-              participanteId,
-              rifaId
-            });
-            // No fallar el webhook por error de email
+            console.error('Error enviando email:', emailError.message);
           }
           
-          // 6. Notificar al creador sobre el pago confirmado
           try {
             await notifyPaymentConfirmed(
               participanteId,
@@ -940,43 +781,28 @@ async function handlePaymentSuccess(paymentIntent, io = null) {
               io
             );
           } catch (notifError) {
-            logger.error('Error enviando notificación de pago desde webhook', {
-              error: notifError.message,
-              participanteId,
-              rifaId
-            });
-            // No fallar el webhook por error de notificación
+            console.error('Error enviando notificación:', notifError.message);
           }
           
         } catch (error) {
           await client.query('ROLLBACK');
-          logger.error('Error auto-registrando participación desde webhook', {
-            error: error.message,
-            participanteId,
-            rifaId
-          });
+          console.error('Error auto-registrando participación:', error.message);
           throw error;
         } finally {
           client.release();
         }
-      } else {
-        logger.warn('Participante no encontrado o ya procesado en webhook', {
-          participanteId,
-          rifaId,
-          estado: participanteResult.rows.length > 0 ? participanteResult.rows[0].estado : 'no encontrado'
-        });
       }
     }
     
   } catch (error) {
-    logger.error('Error en handlePaymentSuccess', { error: error.message });
+    console.error('Error en handlePaymentSuccess:', error.message);
     throw error;
   }
 }
 
 async function handlePaymentFailed(paymentIntent) {
   try {
-    logger.warn('Pago fallido', { paymentIntentId: paymentIntent.id });
+    console.warn('Pago fallido:', { paymentIntentId: paymentIntent.id });
     
     await query(`
       UPDATE stripe_transactions
@@ -987,13 +813,13 @@ async function handlePaymentFailed(paymentIntent) {
     `, [paymentIntent.id]);
     
   } catch (error) {
-    logger.error('Error en handlePaymentFailed', { error: error.message });
+    console.error('Error en handlePaymentFailed:', error.message);
   }
 }
 
 async function handleAccountUpdate(account) {
   try {
-    logger.info('Cuenta Stripe actualizada', { accountId: account.id });
+    console.log('Cuenta Stripe actualizada:', { accountId: account.id });
     
     await query(`
       UPDATE stripe_connect_accounts
@@ -1015,12 +841,11 @@ async function handleAccountUpdate(account) {
     ]);
     
   } catch (error) {
-    logger.error('Error en handleAccountUpdate', { error: error.message });
+    console.error('Error en handleAccountUpdate:', error.message);
   }
 }
 
 // GET /api/stripe/transactions
-// Obtener historial de transacciones (solo para creadores)
 router.get('/transactions', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -1053,19 +878,14 @@ router.get('/transactions', authenticateToken, requireAdmin, async (req, res) =>
     });
     
   } catch (error) {
-    logger.error('Error obteniendo transacciones', { error: error.message });
+    console.error('Error obteniendo transacciones:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-/**
- * POST /api/stripe/simulate-payment
- * Endpoint de prueba para simular un pago confirmado (solo desarrollo/testing)
- * Simula el webhook de Stripe sin necesidad de hacer un pago real
- */
+// POST /api/stripe/simulate-payment
 router.post('/simulate-payment', authenticateToken, async (req, res) => {
   try {
-    // Solo permitir en desarrollo
     if (process.env.NODE_ENV === 'production') {
       return res.status(403).json({
         success: false,
@@ -1075,7 +895,6 @@ router.post('/simulate-payment', authenticateToken, async (req, res) => {
 
     const { rifa_id, participante_id, numeros, monto } = req.body;
 
-    // Validar parámetros requeridos
     if (!rifa_id || !participante_id) {
       return res.status(400).json({
         success: false,
@@ -1085,7 +904,6 @@ router.post('/simulate-payment', authenticateToken, async (req, res) => {
 
     const io = req.app.get('io');
 
-    // Obtener información del participante y rifa
     const participanteResult = await query(
       'SELECT * FROM participantes WHERE id = $1',
       [participante_id]
@@ -1113,26 +931,17 @@ router.post('/simulate-payment', authenticateToken, async (req, res) => {
     const participante = participanteResult.rows[0];
     const rifa = rifaResult.rows[0];
     
-    // Calcular monto si no se proporciona
     const numerosArray = numeros ? (Array.isArray(numeros) ? numeros : numeros.split(',').map(n => n.trim())) : participante.numeros_seleccionados || [];
     const total = monto || (parseFloat(rifa.precio) * numerosArray.length).toFixed(2);
 
-    logger.info('Simulando pago confirmado', {
-      rifa_id,
-      participante_id,
-      total,
-      usuario_id: req.user.id
-    });
+    console.log('Simulando pago confirmado:', { rifa_id, participante_id, total });
 
-    // Simular el flujo de pago confirmado
-    // 1. Actualizar estado del participante a confirmado
     await query(`
       UPDATE participantes 
       SET estado = 'confirmado', fecha_confirmacion = CURRENT_TIMESTAMP
       WHERE id = $1
     `, [participante_id]);
 
-    // 2. Mover elementos de reservados a vendidos
     await query(`
       DELETE FROM elementos_reservados 
       WHERE rifa_id = $1 AND participante_id = $2
@@ -1146,7 +955,6 @@ router.post('/simulate-payment', authenticateToken, async (req, res) => {
       `, [rifa_id, participante_id, elemento]);
     }
 
-    // 3. Registrar transacción simulada (opcional)
     await query(`
       INSERT INTO stripe_transactions (
         rifa_id, participante_id, stripe_payment_intent_id, 
@@ -1161,12 +969,11 @@ router.post('/simulate-payment', authenticateToken, async (req, res) => {
       'raffle_payment'
     ]);
 
-    // 4. Enviar notificación de pago confirmado
     await notifyPaymentConfirmed(
       participante_id,
       rifa_id,
       {
-        usuario_id: null, // El participante puede no tener cuenta de usuario
+        usuario_id: null,
         total: total
       },
       rifa.usuario_id,
@@ -1187,11 +994,7 @@ router.post('/simulate-payment', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error simulando pago', {
-      error: error.message,
-      userId: req.user.id,
-      body: req.body
-    });
+    console.error('Error simulando pago:', error.message);
     res.status(500).json({
       success: false,
       error: 'Error simulando pago',
@@ -1201,4 +1004,3 @@ router.post('/simulate-payment', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-

@@ -29,11 +29,8 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
       onClose();
       setLoginData({ email: '', password: '' });
       setLoginErrors({ email: '', password: '' });
-      if (result.user?.rol === 'admin') {
-        navigate('/', { replace: true });
-      } else {
-        navigate('/dashboard-participante', { replace: true });
-      }
+      // 🔥 SOLUCIÓN: Recargar la página para que el router se actualice correctamente
+      window.location.href = '/';
     }
   };
 
@@ -110,7 +107,6 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
           </button>
         </form>
         <p className="modal-footer">
-        
           <button 
             className="link-button"
             onClick={() => {
@@ -118,7 +114,7 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
               if (onSwitchToRegister) onSwitchToRegister();
             }}
           >
-            Esqueci minha senha? 
+            Criar conta
           </button>
         </p>
       </div>

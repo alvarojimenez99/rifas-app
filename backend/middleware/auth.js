@@ -1,14 +1,15 @@
+// middleware/auth.js
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
 
 // Middleware para verificar JWT token
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ 
-      error: 'Token de acceso requerido',
+      error: 'Token de acesso requerido',
       code: 'TOKEN_REQUIRED'
     });
   }
@@ -16,15 +17,15 @@ const authenticateToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Verificar que el usuario aún existe y está activo
+    // 🔥 CORREGIDO: Usar decoded.id (no userId) y eliminar verificación de activo
     const result = await query(
-      'SELECT id, email, nombre, rol, activo FROM usuarios WHERE id = $1 AND activo = true',
-      [decoded.userId]
+      'SELECT id, email, nombre, rol FROM usuarios WHERE id = $1',
+      [decoded.id]  // ← cambiado de decoded.userId a decoded.id
     );
 
     if (result.rows.length === 0) {
       return res.status(401).json({ 
-        error: 'Usuario no encontrado o inactivo',
+        error: 'Usuário não encontrado',
         code: 'USER_NOT_FOUND'
       });
     }
@@ -44,9 +45,9 @@ const authenticateToken = async (req, res, next) => {
       });
     }
     
-    console.error('Error en autenticación:', error);
+    console.error('Erro na autenticação:', error);
     return res.status(500).json({ 
-      error: 'Error interno del servidor',
+      error: 'Erro interno do servidor',
       code: 'INTERNAL_ERROR'
     });
   }
@@ -56,7 +57,7 @@ const authenticateToken = async (req, res, next) => {
 const requireAdmin = (req, res, next) => {
   if (req.user.rol !== 'admin') {
     return res.status(403).json({ 
-      error: 'Acceso denegado. Se requiere rol de administrador',
+      error: 'Acesso negado. É necessário ser administrador.',
       code: 'ADMIN_REQUIRED'
     });
   }
@@ -75,9 +76,10 @@ const optionalAuth = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // 🔥 CORREGIDO: Usar decoded.id
     const result = await query(
-      'SELECT id, email, nombre, rol, activo FROM usuarios WHERE id = $1 AND activo = true',
-      [decoded.userId]
+      'SELECT id, email, nombre, rol FROM usuarios WHERE id = $1',
+      [decoded.id]
     );
 
     req.user = result.rows.length > 0 ? result.rows[0] : null;
@@ -91,9 +93,9 @@ const optionalAuth = async (req, res, next) => {
 // Función para generar JWT token
 const generateToken = (userId) => {
   return jwt.sign(
-    { userId },
+    { id: userId },  // ← usar "id"
     process.env.JWT_SECRET,
-    { expiresIn: '7d' } // Token válido por 7 días
+    { expiresIn: '7d' }
   );
 };
 

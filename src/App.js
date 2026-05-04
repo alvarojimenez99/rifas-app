@@ -346,19 +346,19 @@ function AppWithRouter() {
         <div className="grana-navbar-container">
           {/* Logo - Siempre a la izquierda */}
           <div 
-            className="grana-navbar-logo" 
-            onClick={() => {
-              if (user) {
-                if (user.rol === 'admin') {
-                  navigate('/');
-                } else {
-                  navigate('/dashboard-participante');
-                }
-              } else {
-                navigate('/');
-              }
-            }}
-          >
+  className="grana-navbar-logo" 
+  onClick={() => {
+    if (user) {
+      if (user.role === 'admin' || user.rol === 'admin') {
+        navigate('/');
+      } else {
+        navigate('/dashboard-participante');
+      }
+    } else {
+      navigate('/');
+    }
+  }}
+>
             <span className="grana-navbar-logo-icon">💰</span>
             <span className="grana-navbar-logo-text">
               <span style={{ color: '#00d26a' }}>Pele</span>
@@ -575,19 +575,18 @@ function AppWithRouter() {
         <Route path="/como-funciona" element={<HowItWorksSection />} />
         
         <Route path="/" element={
-          <main className="App-main">
-            {loading ? (
-              <div className="loading-container">
-                <div className="loading-spinner">⏳</div>
-                <p>{t('common.loading')}</p>
-              </div>
-            ) : isAdmin ? (
-              <AdminDashboard />
-            ) : (
-              <Navigate to="/landing" replace />
-            )}
-          </main>
-        } />
+  <main className="App-main">
+    {loading ? (
+      <div className="loading-container">Carregando...</div>
+    ) : (user?.role === 'admin' || user?.rol === 'admin') ? (
+      <AdminDashboard />
+    ) : user ? (
+      <ParticipantDashboard />
+    ) : (
+      <Navigate to="/landing" replace />
+    )}
+  </main>
+} />
         
         <Route path="/landing" element={
           <main className="App-main">
