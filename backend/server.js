@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const { testConnection, query } = require('./config/database');
 
-console.log('🚀 SERVIDOR PELELECA - V7');
+console.log('🚀 SERVIDOR PELELECA - V7.1');
 console.log('Versão Node:', process.version);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
@@ -253,38 +253,8 @@ app.use('/api/notifications', notificationsRoutes);
 // =====================================================
 // ROTAS DE PARTICIPANTES
 // =====================================================
-const routerParticipantes = express.Router();
-
-routerParticipantes.get('/:rifaId', async (req, res) => {
-  try {
-    const result = await query(
-      'SELECT * FROM participantes WHERE rifa_id = $1 ORDER BY fecha_participacion DESC',
-      [req.params.rifaId]
-    );
-    res.json({ participantes: result.rows, total: result.rows.length });
-  } catch (error) {
-    console.error('❌ Erro ao obter participantes:', error);
-    res.status(500).json({ error: 'Erro ao obter participantes' });
-  }
-});
-
-routerParticipantes.post('/:rifaId/confirmar-pago', authenticateToken, async (req, res) => {
-  try {
-    const { rifaId } = req.params;
-    const { numerosSelecionados, total, metodoPagamento } = req.body;
-    console.log('✅ Pagamento confirmado:', { rifaId, numerosSelecionados, total, metodoPagamento });
-    res.json({ 
-      success: true, 
-      message: 'Pagamento confirmado', 
-      participante: { id: Date.now(), numeros: numerosSelecionados, total } 
-    });
-  } catch (error) {
-    console.error('❌ Erro ao confirmar pagamento:', error);
-    res.status(500).json({ error: 'Erro ao confirmar pagamento' });
-  }
-});
-
-app.use('/api/participantes', routerParticipantes);
+const participantesRoutes = require('./routes/participantes');
+app.use('/api/participantes', participantesRoutes);
 
 // =====================================================
 // ROTAS ADICIONAIS
@@ -302,40 +272,9 @@ app.use('/api/verify', verifyRoutes);
 // =====================================================
 // ROTAS DE PAGAMENTOS
 // =====================================================
-const routerPayments = express.Router();
-
-routerPayments.post('/pix/create', async (req, res) => {
-  try {
-    const { rifaId, numerosSelecionados, total, email, nome } = req.body;
-    console.log('📦 Requisição PIX:', { rifaId, numerosSelecionados, total, email, nome });
-    res.json({
-      success: true,
-      qrCode: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      copiaECola: '00020101021226820014br.gov.bcb.pix2560pix-h.asaas.com/qr/mock',
-      paymentId: 'mock_' + Date.now(),
-      expiresIn: 1800
-    });
-  } catch (error) {
-    console.error('❌ Erro ao criar pagamento PIX:', error);
-    res.status(500).json({ error: 'Erro ao criar pagamento PIX' });
-  }
-});
-
-routerPayments.post('/card/create-intent', async (req, res) => {
-  try {
-    const { rifaId, numerosSelecionados, total, email, nome } = req.body;
-    console.log('💳 Requisição Stripe:', { rifaId, numerosSelecionados, total, email, nome });
-    res.json({
-      clientSecret: 'pi_mock_' + Date.now() + '_secret_mock',
-      paymentIntentId: 'pi_mock_' + Date.now()
-    });
-  } catch (error) {
-    console.error('❌ Erro ao criar pagamento com cartão:', error);
-    res.status(500).json({ error: 'Erro ao criar pagamento com cartão' });
-  }
-});
-
-app.use('/api/payments', routerPayments);
+// ✅ AGREGAR ESTO - RUTAS DE PAGAMENTOS
+const paymentsRoutes = require('./routes/payments');
+app.use('/api/payments', paymentsRoutes);
 
 // =====================================================
 // SOCKET.IO

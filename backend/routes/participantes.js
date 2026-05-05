@@ -25,10 +25,9 @@ const router = express.Router();
 // =====================================================
 router.get('/mis-premios', authenticateToken, async (req, res) => {
   try {
-    const usuarioId = req.user.id;
-    console.log('🎯 Buscando premios para usuario:', usuarioId);
+    const usuarioEmail = req.user.email; // Usar email del token
+    console.log('🎯 Buscando premios para email:', usuarioEmail);
 
-    // Buscar todas las rifas donde el usuario ha participado y ha ganado
     const premiosResult = await query(`
       SELECT 
         r.id as rifa_id,
@@ -53,16 +52,13 @@ router.get('/mis-premios', authenticateToken, async (req, res) => {
       FROM participantes p
       JOIN rifas r ON p.rifa_id = r.id
       LEFT JOIN fotos_premios f ON r.id = f.rifa_id
-      WHERE p.usuario_id = $1 
+      WHERE p.email = $1 
         AND p.estado = 'confirmado'
         AND r.resultado_publicado = true
         AND r.numero_ganador IS NOT NULL
         AND (
-          -- El número ganador está en los números seleccionados del participante
-          p.numeros_seleccionados::text LIKE $2
-          OR
-          -- O el número ganador está en elementos_vendidos
-          EXISTS (
+          p.numeros_seleccionados::text LIKE concat('%', r.numero_ganador, '%')
+          OR EXISTS (
             SELECT 1 FROM elementos_vendidos ev 
             WHERE ev.rifa_id = r.id 
             AND ev.participante_id = p.id 
@@ -75,37 +71,14 @@ router.get('/mis-premios', authenticateToken, async (req, res) => {
         p.id, p.nombre, p.email, p.numeros_seleccionados, p.total_pagado, p.fecha_participacion,
         p.estado
       ORDER BY r.fecha_sorteo DESC
-    `, [usuarioId, `%"${usuarioId}"%`]);
+    `, [usuarioEmail]);
 
     console.log(`📊 Encontrados ${premiosResult.rows.length} premios`);
 
-    // Formatear los resultados
-    const premios = premiosResult.rows.map(premio => ({
-      id: premio.rifa_id,
-      rifa_id: premio.rifa_id,
-      rifa_nombre: premio.rifa_nombre,
-      numero_ganador: premio.numero_ganador,
-      fecha_sorteo: premio.fecha_sorteo,
-      fecha_fin: premio.fecha_fin,
-      resultado_publicado: premio.resultado_publicado,
-      premio_nombre: premio.rifa_nombre,
-      estado: 'ganador',
-      participante: {
-        id: premio.participante_id,
-        nombre: premio.participante_nombre,
-        email: premio.participante_email,
-        numeros: premio.numeros_seleccionados,
-        total_pagado: parseFloat(premio.total_pagado)
-      },
-      fotos: premio.fotos_premios || [],
-      fecha_participacion: premio.fecha_participacion,
-      precio: parseFloat(premio.precio)
-    }));
-
     res.json({
       success: true,
-      total: premios.length,
-      premios: premios
+      total: premiosResult.rows.length,
+      premios: premiosResult.rows
     });
 
   } catch (error) {

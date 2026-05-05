@@ -29,7 +29,7 @@ import TerminosCondiciones from './components/TerminosCondiciones';
 import PoliticaPrivacidad from './components/PoliticaPrivacidad';
 import PoliticaCookies from './components/PoliticaCookies';
 import AvisoLegal from './components/AvisoLegal';
-import AllCuponesPage from './components/AllCuponesPage';
+
 import CookieBanner from './components/CookieBanner';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import NotificationBadge from './components/NotificationBadge';
@@ -45,6 +45,7 @@ import GerenciarParticipantes from './components/admin/GerenciarParticipantes';
 import HowItWorksSection from './components/landing/HowItWorksSection';
 import AuthModal from './components/AuthModal';
 import { ModalProvider, useModal } from './contexts/ModalContext';
+import CreateRifaParticipante from './components/participant/CreateRifaParticipante';
 
 // Componente interno que usa useLocation dentro do Router
 function LogoutRoute() {
@@ -664,8 +665,15 @@ function AppWithRouter() {
             </main>
           </ProtectedRoute>
         } />
+        <Route path="/criar-rifa" element={
+  <ProtectedRoute requireAdmin={false}>
+    <main className="App-main">
+      <CreateRifaParticipante />
+    </main>
+  </ProtectedRoute>
+} />
         
-        <Route path="/cupones" element={<AllCuponesPage />} />
+
         <Route path="/termos-condicoes" element={<TerminosCondiciones />} />
         <Route path="/politica-privacidade" element={<PoliticaPrivacidad />} />
         <Route path="/politica-cookies" element={<PoliticaCookies />} />
